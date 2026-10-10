@@ -1,0 +1,19 @@
+{
+  "name": "buywise-ai",
+  "version": "1.0.0",
+  "private": true,
+  "description": "BuyWise AI - goal-to-purchase agent: Claude + Channel3 discovery, deterministic total-cost engine, AG Grid decision dashboard, PIN-locked PayPal checkout.",
+  "license": "MIT",
+  "scripts": {
+    "install:all": "npm --prefix backend install --include=dev && npm --prefix frontend install --include=dev",
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend start",
+    "build": "npm --prefix frontend run build",
+    "start": "npm --prefix backend start",
+    "test": "npm --prefix backend test",
+    "typecheck": "npm --prefix backend run typecheck"
+  },
+  "engines": {
+    "node": ">=20.19"
+  }
+}

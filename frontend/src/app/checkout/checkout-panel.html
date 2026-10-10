@@ -1,0 +1,147 @@
+@let p = plan();
+<div class="backdrop" (click)="step() === 'review' ? close() : null"></div>
+<aside class="drawer" role="dialog" aria-modal="true" aria-labelledby="checkout-title">
+  <header>
+    <div>
+      <div class="eyebrow">Agentic checkout</div>
+      <h2 id="checkout-title">{{ p.title }}</h2>
+    </div>
+    <button class="x" (click)="close()" aria-label="Close checkout">✕</button>
+  </header>
+
+  <ol class="stepper">
+    @for (s of steps; track s.key; let i = $index) {
+      <li [class.active]="s.key === step()" [class.done]="stepIndex(step()) > i || step() === 'done'">
+        <span>{{ i + 1 }}</span>{{ s.label }}
+      </li>
+    }
+  </ol>
+
+  <div class="body">
+    <!-- Line items: always visible so the user sees exactly what they're approving -->
+    <div class="items card">
+      @for (i of p.items; track i.sku) {
+        <div class="line">
+          <div>
+            <div class="n">{{ i.quantity > 1 ? i.quantity + ' × ' : '' }}{{ i.name }}</div>
+            @if (i.retailer) {
+              <small>{{ i.retailer }}</small>
+            }
+          </div>
+          <div class="num">{{ i.lineTotal | money }}</div>
+        </div>
+      }
+      <div class="totals">
+        <div class="line sub"><span>Subtotal</span><span class="num">{{ p.pricing.subtotal | money }}</span></div>
+        @if (p.pricing.discount) {
+          <div class="line sub"><span>Discount</span><span class="num">-{{ p.pricing.discount | money }}</span></div>
+        }
+        <div class="line sub"><span>Shipping & tax</span><span>Calculated by retailer</span></div>
+        <div class="line total"><span>Charged now via PayPal</span><span class="num">{{ p.pricing.total | money }}</span></div>
+      </div>
+      @if (p.recurring.length) {
+        <div class="recurring">
+          <div class="eyebrow">Not charged now · ongoing</div>
+          @for (r of p.recurring; track r.name) {
+            <div class="line sub"><span>{{ r.name }}</span><span class="num">{{ r.monthly | money }}/mo</span></div>
+          }
+        </div>
+      }
+      <div class="line year"><span>True first-year cost</span><span class="num">{{ p.ownership.firstYearCost | money }}</span></div>
+    </div>
+
+    @switch (step()) {
+      @case ('review') {
+        <div class="impact">
+          <span class="chip {{ p.affordability.impact }}">{{ impactLabel[p.affordability.impact] }}</span>
+          @for (n of p.affordability.notes.slice(0, 2); track n) {
+            <span class="note">{{ n }}</span>
+          }
+        </div>
+        <p class="explain">
+          Locking freezes these exact items and amounts into a SHA-256 hash-locked transaction. After that, nothing - including the AI - can change
+          what you're authorising.
+        </p>
+        @if (!store.config()?.integrations?.paypal) {
+          <div class="alert">PayPal sandbox credentials aren't configured on the server, so payment can't complete. Add PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET to backend/.env.</div>
+        }
+        @if (message()) {
+          <div class="alert">
+            {{ message() }}
+            @for (c of changes(); track c) {
+              <div>· {{ c }}</div>
+            }
+          </div>
+        }
+        <div class="actions">
+          <button class="btn ghost" (click)="cancel()" [disabled]="working()">Cancel</button>
+          <button class="btn primary" (click)="lock()" [disabled]="working()">{{ working() ? 'Checking prices…' : 'Lock this purchase' }}</button>
+        </div>
+      }
+
+      @case ('authorize') {
+        <div class="lock card">
+          <div class="lock-head">🔒 Transaction locked</div>
+          <code>{{ p.lock?.hash?.slice(0, 16) }}…{{ p.lock?.hash?.slice(-8) }}</code>
+          <small>SHA-256 of the exact items and amounts above · locked {{ p.lock?.lockedAt | date: 'shortTime' }}</small>
+        </div>
+        <p class="explain center">Enter your BuyWise PIN to authorise <strong>{{ p.pricing.total | money }}</strong>. The PIN is checked by the server and never reaches the AI.</p>
+        <app-secure-pin [disabled]="working()" [message]="pinMessage()" (authorize)="authorize($event)" />
+        <p class="hint">Sandbox demo PIN is set by <code>DEMO_PIN</code> (see README).</p>
+      }
+
+      @case ('pay') {
+        <div class="lock card ok">
+          <div class="lock-head">✓ Authorised · PayPal order {{ p.paypal?.orderId }}</div>
+          <small>Created server-side from the locked plan. Approve it with your PayPal sandbox buyer account.</small>
+        </div>
+        @if (working()) {
+          <div class="capturing">Capturing payment…</div>
+        }
+        <div #paypalHost class="paypal"></div>
+        @if (paypalError()) {
+          <div class="alert">{{ paypalError() }}</div>
+        }
+      }
+
+      @case ('done') {
+        <div class="success">
+          <div class="tick">✓</div>
+          <h3>Purchase complete</h3>
+          <p>Paid <strong class="num">{{ p.pricing.total | money }}</strong> through PayPal.</p>
+          <dl>
+            <dt>PayPal order</dt>
+            <dd>{{ p.paypal?.orderId }}</dd>
+            <dt>Capture</dt>
+            <dd>{{ p.paypal?.captureId }}</dd>
+            @if (p.paypal?.payerEmail) {
+              <dt>Payer</dt>
+              <dd>{{ p.paypal?.payerEmail }}</dd>
+            }
+            <dt>Lock hash</dt>
+            <dd>{{ p.lock?.hash?.slice(0, 20) }}…</dd>
+          </dl>
+          <button class="btn" (click)="close()">Back to BuyWise</button>
+        </div>
+      }
+
+      @case ('failed') {
+        <div class="failed">
+          <h3>{{ p.status === 'PAYMENT_DECLINED' ? 'Payment declined' : p.status === 'CANCELLED' ? 'Plan cancelled' : 'Payment failed' }}</h3>
+          <p>{{ p.failureReason || 'No payment was taken.' }}</p>
+          <p class="explain">Authorised plans are never renegotiated after the PIN. Start a new plan if you'd like to try again.</p>
+          <button class="btn" (click)="startOver()">Start over</button>
+        </div>
+      }
+    }
+
+    <details class="audit">
+      <summary>Audit trail</summary>
+      <ol>
+        @for (h of p.history; track $index) {
+          <li><b>{{ h.status }}</b> <span>{{ h.at | date: 'mediumTime' }}</span> @if (h.note) { <em>{{ h.note }}</em> }</li>
+        }
+      </ol>
+    </details>
+  </div>
+</aside>

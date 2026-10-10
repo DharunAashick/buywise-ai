@@ -1,0 +1,97 @@
+@let o = option();
+<section class="detail">
+  <div class="col main card">
+    <div class="head">
+      <div>
+        <div class="eyebrow">{{ o.approach }} · rank #{{ o.rank }}</div>
+        <h3>{{ o.name }}</h3>
+      </div>
+      <button class="btn" [class.primary]="!isRecommended()" (click)="store.startCheckout(o)" [disabled]="store.busy()">
+        {{ isRecommended() ? 'Buy recommended' : 'Choose this instead' }}
+      </button>
+    </div>
+
+    <div class="bar" role="img" aria-label="First-year cost breakdown">
+      @for (s of segments(); track s.key) {
+        <span [style.width.%]="s.pct" [style.background]="s.color" [title]="s.key"></span>
+      }
+    </div>
+    <div class="legend">
+      @for (s of segments(); track s.key) {
+        <span><i [style.background]="s.color"></i>{{ s.key }} <b class="num">{{ s.value | money: true }}</b></span>
+      }
+    </div>
+
+    @if (o.bundle && o.bundle.savings > 0) {
+      <div class="bundle">
+        <strong>Bundle detected:</strong> {{ o.bundle.bundleTitle }} costs <b class="num">{{ o.bundle.bundlePrice | money }}</b> vs
+        <b class="num">{{ o.bundle.separatePrice | money }}</b> separately - saves <b class="num save">{{ o.bundle.savings | money }}</b>.
+      </div>
+    }
+
+    <div class="components">
+      @for (g of groups(); track g.role) {
+        <div class="group-label"><span class="chip {{ roleClass[g.role] }}">{{ roleLabel[g.role] }}</span></div>
+        @for (c of g.items; track c.id) {
+          <label class="comp" [class.off]="!c.included" [class.locked]="c.role === 'REQUIRED'">
+            <input type="checkbox" [checked]="c.included" [disabled]="c.role === 'REQUIRED' || store.busy()" (change)="toggle(c)" />
+            <div class="info">
+              <div class="t">{{ c.quantity > 1 ? c.quantity + ' × ' : '' }}{{ c.title }}</div>
+              <div class="r">{{ c.reason }}</div>
+            </div>
+            <div class="p num">
+              @if (c.recurringMonthly) {
+                {{ c.recurringMonthly | money }}<small>/mo</small>
+              } @else {
+                {{ c.unitPrice * c.quantity | money }}
+              }
+              @if (c.retailer) {
+                <small class="ret">{{ c.retailer }}</small>
+              }
+            </div>
+          </label>
+        }
+      }
+    </div>
+  </div>
+
+  <div class="col side">
+    <div class="card pad">
+      <div class="eyebrow">Why this ranks #{{ o.rank }}</div>
+      <ul class="pros">
+        @for (p of o.pros; track p) {
+          <li>{{ p }}</li>
+        }
+      </ul>
+      @if (o.cons.length) {
+        <ul class="cons">
+          @for (c of o.cons; track c) {
+            <li>{{ c }}</li>
+          }
+        </ul>
+      }
+    </div>
+
+    <div class="card pad">
+      <div class="eyebrow">Score breakdown · {{ o.score?.total?.toFixed(1) }}/10</div>
+      @for (s of scoreRows(); track s.key) {
+        <div class="score">
+          <span>{{ s.key }} <small>{{ s.weight }}</small></span>
+          <div class="track"><i [style.width.%]="s.value * 10"></i></div>
+          <b class="num">{{ s.value.toFixed(1) }}</b>
+        </div>
+      }
+    </div>
+
+    <div class="card pad">
+      <div class="eyebrow">Financial impact</div>
+      <div class="impact"><span class="chip {{ o.affordability.impact }}">{{ o.affordability.impact.replace('_', ' ') }}</span></div>
+      <ul class="notes">
+        @for (n of o.affordability.notes; track n) {
+          <li>{{ n }}</li>
+        }
+      </ul>
+      <p class="disclaimer">Decision support based only on figures you shared - not financial advice.</p>
+    </div>
+  </div>
+</section>

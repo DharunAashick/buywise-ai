@@ -1,0 +1,30 @@
+# Render blueprint: one web service builds the Angular app and serves it from the Node backend.
+services:
+  - type: web
+    name: buywise-ai
+    runtime: node
+    plan: free
+    buildCommand: npm run install:all && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PAYPAL_ENVIRONMENT
+        value: sandbox
+      - key: ALLOW_DEMO_CATALOG
+        value: "true"
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: PAYPAL_WEBHOOK_ID
+        sync: false
+      - key: CHANNEL3_API_KEY
+        sync: false
+      - key: DEMO_PIN
+        sync: false
+      - key: FRONTEND_URL
+        sync: false

@@ -1,0 +1,83 @@
+<div class="wrap">
+  @if (store.options().length === 0) {
+    <section class="empty">
+      <div class="flow">
+        @for (step of ['Goal', 'Solutions', 'Hidden needs', 'True cost', 'Budget fit', 'Recommend', 'You approve', 'PayPal']; track step; let i = $index) {
+          <div class="step" [style.animation-delay]="i * 70 + 'ms'">
+            <span class="n">{{ i + 1 }}</span>{{ step }}
+          </div>
+        }
+      </div>
+      <h2>Most shopping assistants answer the question you asked.</h2>
+      <p>BuyWise answers the one you should have asked: <strong>what's the best way to reach your goal, and what will it really cost?</strong></p>
+      @if (store.busy()) {
+        <div class="scanning"><span></span>Discovering solutions…</div>
+      }
+    </section>
+  } @else {
+    @if (rec(); as r) {
+      <section class="hero card">
+        <div class="hero-main">
+          <div class="eyebrow">Recommended for “{{ profile()?.goal || 'your goal' }}”</div>
+          <h2>{{ r.name }}</h2>
+          <p>{{ r.summary }}</p>
+          <div class="approaches">
+            Compared {{ store.options().length }} solutions across
+            @for (a of approaches(); track a; let last = $last) {
+              <span class="chip">{{ a }}</span>
+            }
+          </div>
+        </div>
+        <button class="btn primary" (click)="store.startCheckout(r)" [disabled]="store.busy()">Buy this setup</button>
+      </section>
+
+      <section class="kpis">
+        <div class="kpi card">
+          <div class="eyebrow">Pay today</div>
+          <div class="v num">{{ r.cost.upfrontTotal | money }}</div>
+          <div class="s">Through PayPal checkout</div>
+        </div>
+        <div class="kpi card">
+          <div class="eyebrow">Monthly after</div>
+          <div class="v num">{{ r.cost.monthlyRecurring | money }}</div>
+          <div class="s">Subscriptions, billed by provider</div>
+        </div>
+        <div class="kpi card accent">
+          <div class="eyebrow">True first-year cost</div>
+          <div class="v num">{{ r.cost.firstYearTotal | money }}</div>
+          <div class="s">Hardware + games + 12 months of subscriptions</div>
+        </div>
+        <div class="kpi card">
+          <div class="eyebrow">Budget impact</div>
+          <div class="v small"><span class="chip {{ r.affordability.impact }}">{{ impactLabel[r.affordability.impact] }}</span></div>
+          <div class="s">
+            @if (r.affordability.upfrontToIncomeRatio !== undefined) {
+              {{ r.affordability.upfrontToIncomeRatio.toFixed(2) }}× monthly income shared
+            } @else {
+              Share income or budget to assess
+            }
+          </div>
+        </div>
+        @if (spread() > 0) {
+          <div class="kpi card">
+            <div class="eyebrow">Saved vs priciest option</div>
+            <div class="v num save">{{ spread() | money: true }}</div>
+            <div class="s">First-year basis</div>
+          </div>
+        }
+      </section>
+    }
+
+    <section class="block">
+      <div class="block-head">
+        <h3>Solution comparison</h3>
+        <span class="hint">Click a row to inspect it · scores from the deterministic engine</span>
+      </div>
+      <app-comparison-grid [options]="store.options()" [selectedId]="store.selected()?.id" (select)="store.selectedOptionId.set($event)" />
+    </section>
+
+    @if (store.selected(); as sel) {
+      <app-option-detail [option]="sel" [isRecommended]="sel.id === rec()?.id" />
+    }
+  }
+</div>
