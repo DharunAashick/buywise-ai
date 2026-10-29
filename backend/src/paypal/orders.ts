@@ -35,9 +35,13 @@ export async function createOrderForPlan(plan: PurchasePlan): Promise<{ orderId:
   if (!result?.id) throw new PayPalError("PayPal order creation failed", errorCode(result), result?.error);
 
   // Defence in depth: the amount PayPal will charge must equal the locked total, to the cent.
-  const charged = toCents(Number(result.purchase_units?.[0]?.amount?.value ?? NaN));
-  if (Number.isFinite(charged) && charged !== plan.pricing.total) {
-    throw new PayPalError(`PayPal order total ${charged} does not match locked total ${plan.pricing.total}`, "AMOUNT_MISMATCH");
+  // The create response is minimal (no amounts), so read the order back before trusting it.
+  const order = await runToolkit(toolkit, "get_order", { id: result.id });
+  const unit = order?.purchase_units?.[0]?.amount;
+  if (!unit?.value) throw new PayPalError("Could not verify the PayPal order amount", "AMOUNT_UNVERIFIED", order?.error);
+  const charged = toCents(Number(unit.value));
+  if (charged !== plan.pricing.total || unit.currency_code !== plan.pricing.currency) {
+    throw new PayPalError(`PayPal order total ${unit.value} ${unit.currency_code} does not match locked total`, "AMOUNT_MISMATCH");
   }
   return { orderId: result.id, status: result.status };
 }
