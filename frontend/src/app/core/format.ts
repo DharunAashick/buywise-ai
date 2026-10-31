@@ -34,7 +34,9 @@ export function renderChat(text: string): string {
   const out: string[] = [];
   let list = false;
   for (const raw of lines) {
-    const line = raw.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    const line = raw
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/(^|[^*\w])\*(?!\s)([^*\n]+?)\*(?!\w)/g, '$1<em>$2</em>');
     const bullet = /^\s*(?:[-*•]|\d+\.)\s+(.*)$/.exec(line);
     if (bullet) {
       if (!list) {

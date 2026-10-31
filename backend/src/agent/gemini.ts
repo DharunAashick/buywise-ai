@@ -56,16 +56,18 @@ export async function geminiTurn(session: Session, userText: string, emit: (e: A
   store.saveSession(session);
 
   for (let i = 0; i < MAX_ITERATIONS; i++) {
-    const stream = await gemini().models.generateContentStream({
-      model: config.gemini.model,
-      contents: history,
-      config: {
-        systemInstruction: SYSTEM_PROMPT,
-        tools: [{ functionDeclarations: functionDeclarations() }],
-        automaticFunctionCalling: { disable: true },
-        maxOutputTokens: 8192,
-      },
-    });
+    const stream = await withRateLimitRetry(() =>
+      gemini().models.generateContentStream({
+        model: config.gemini.model,
+        contents: history,
+        config: {
+          systemInstruction: SYSTEM_PROMPT,
+          tools: [{ functionDeclarations: functionDeclarations() }],
+          automaticFunctionCalling: { disable: true },
+          maxOutputTokens: 8192,
+        },
+      }),
+    );
 
     // Keep every part exactly as returned (thought signatures must be sent back unchanged).
     const parts: Part[] = [];
@@ -117,10 +119,39 @@ export async function geminiTurn(session: Session, userText: string, emit: (e: A
   }
 }
 
+const MAX_RETRY_WAIT_S = 45;
+
+function retryDelaySeconds(err: ApiError): number | undefined {
+  const m = /retryDelay[\\"\s:]+(\d+(?:\.\d+)?)s/.exec(err.message);
+  return m ? Number(m[1]) : undefined;
+}
+
+function isDailyQuota(err: ApiError): boolean {
+  return /PerDay/i.test(err.message);
+}
+
+/** Retries per-minute rate limits (short waits); daily-quota exhaustion fails fast with a clear message. */
+async function withRateLimitRetry<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
+  for (let a = 1; ; a++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (!(err instanceof ApiError) || err.status !== 429 || isDailyQuota(err) || a >= attempts) throw err;
+      const wait = Math.min(retryDelaySeconds(err) ?? 15, MAX_RETRY_WAIT_S);
+      log("gemini_rate_limited", { attempt: a, waitSeconds: wait }, "warn");
+      await new Promise((r) => setTimeout(r, wait * 1000));
+    }
+  }
+}
+
 /** Maps Gemini SDK errors to a user-facing message. */
 export function geminiErrorMessage(err: unknown): string | undefined {
   if (!(err instanceof ApiError)) return undefined;
+  if (err.status === 429 && isDailyQuota(err)) {
+    return `The free daily Gemini quota for ${config.gemini.model} is used up. It resets daily - or set GEMINI_MODEL to another model, or enable billing in Google AI Studio.`;
+  }
   if (err.status === 429) return "The free Gemini quota is busy right now - please wait a minute and try again.";
+  if (err.status === 404) return `Gemini model "${config.gemini.model}" isn't available to this key. Set GEMINI_MODEL to a current model.`;
   if (err.status === 400 || err.status === 403) return `Gemini rejected the request (${err.status}). Check GEMINI_API_KEY and GEMINI_MODEL.`;
   return `The AI service returned an error (${err.status}).`;
 }

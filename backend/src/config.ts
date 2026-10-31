@@ -16,7 +16,9 @@ export const config = {
 
   gemini: {
     apiKey: process.env.GEMINI_API_KEY ?? "",
-    model: process.env.GEMINI_MODEL ?? "gemini-2.5-flash",
+    // gemini-2.5-* is closed to new API keys, and the full Flash free tier allows only 20 requests/day,
+    // too few for a multi-step agent. Flash-Lite has a far larger free allowance.
+    model: process.env.GEMINI_MODEL ?? "gemini-3.5-flash-lite",
   },
 
   channel3: {
