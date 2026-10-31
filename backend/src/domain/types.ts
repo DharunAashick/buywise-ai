@@ -100,6 +100,8 @@ export interface SolutionOption {
   pros: string[];
   cons: string[];
   goalFit: number; // 0..10 as judged by the agent, explained in pros/cons
+  /** Built around the specific product the user named (e.g. "I want a PS5"). */
+  matchesRequest?: boolean;
   components: SolutionComponent[];
   bundle?: BundleCheck;
   cost: CostBreakdown;

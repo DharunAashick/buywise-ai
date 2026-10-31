@@ -64,6 +64,10 @@ const OptionInput = z.object({
   approach: z.string().describe("Solution category, e.g. 'Console', 'Gaming PC', 'Handheld'"),
   summary: z.string().describe("One sentence describing the option"),
   goal_fit: z.number().min(0).max(10).describe("How well this option serves the stated goal and preferences, 0-10. Justify it in pros/cons."),
+  matches_request: z
+    .boolean()
+    .optional()
+    .describe("True only for the option built around the specific product the user named (e.g. the PS5 option when they said 'I want a PS5')."),
   pros: z.array(z.string()).min(1).max(5),
   cons: z.array(z.string()).max(5).default([]),
   components: z.array(ComponentInput).min(1).max(12),
@@ -216,6 +220,7 @@ async function buildOption(session: Session, input: z.infer<typeof OptionInput>)
     pros: input.pros,
     cons: input.cons,
     goalFit: input.goal_fit,
+    matchesRequest: input.matches_request || undefined,
     components,
     bundle,
     cost,

@@ -13,6 +13,7 @@ import { runAgentTurn, SessionBusyError, type AgentEvent } from "../agent/orches
 import { PlanError, transactions } from "../transactions/service.js";
 import { planView, sessionView } from "./view.js";
 import { currentUser } from "../auth/cookies.js";
+import { dailyAiCap, rateLimit } from "../security/rate-limit.js";
 import { catalogMarket } from "../agent/tools.js";
 
 export const api = Router();
@@ -56,7 +57,12 @@ api.get("/config", (_req, res) => {
 
 // ---------- Sessions & chat ----------
 
-api.post("/sessions", (req, res) => {
+const chatLimiter = rateLimit({ name: "chat", max: 20, windowMs: 10 * 60 * 1000 });
+const sessionLimiter = rateLimit({ name: "sessions", max: 30, windowMs: 60 * 60 * 1000 });
+const planLimiter = rateLimit({ name: "plans", max: 60, windowMs: 10 * 60 * 1000 });
+api.use("/plans", planLimiter);
+
+api.post("/sessions", sessionLimiter, (req, res) => {
   const user = currentUser(req);
   const s = store.createSession(user?.id);
   if (user?.country) {
@@ -82,6 +88,8 @@ const ChatBody = z.object({ message: z.string().trim().min(1).max(4000) });
 // Server-sent events: text deltas, tool activity, and "state" pings telling the UI to refresh.
 api.post(
   "/sessions/:id/chat",
+  chatLimiter,
+  dailyAiCap,
   wrap(async (req, res) => {
     const s = requireSession(req, String(req.params.id));
     const body = ChatBody.parse(req.body);

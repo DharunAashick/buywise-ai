@@ -1,6 +1,6 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { ApiError, ApiService } from './api.service';
-import type { AppConfig, PurchasePlan, SessionView, SolutionOption } from './models';
+import type { AppConfig, AppUser, PurchasePlan, SessionView, SolutionOption } from './models';
 import { modelLabel, type Fx } from './format';
 
 export interface ActivityItem {
@@ -28,6 +28,24 @@ function writeSessionId(id: string | null) {
   }
 }
 
+const GUEST_KEY = 'buywise.guest';
+
+function readGuest(): boolean {
+  try {
+    return localStorage.getItem(GUEST_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+function writeGuest(on: boolean) {
+  try {
+    if (on) localStorage.setItem(GUEST_KEY, '1');
+    else localStorage.removeItem(GUEST_KEY);
+  } catch {
+    /* storage unavailable */
+  }
+}
+
 const ACTIVE_STATUSES = new Set(['DRAFT', 'FINAL_REVIEW', 'LOCKED', 'AUTHORIZATION_FAILED', 'AUTHORIZED', 'PAYMENT_PENDING']);
 
 @Injectable({ providedIn: 'root' })
@@ -35,6 +53,17 @@ export class BuyWiseStore {
   private api = inject(ApiService);
 
   readonly config = signal<AppConfig | null>(null);
+  /** Signed-in PayPal user, or null for guests / signed out. */
+  readonly user = signal<AppUser | null>(null);
+  readonly authChecked = signal(false);
+  readonly guest = signal(readGuest());
+  readonly paypalLoginAvailable = signal(false);
+  /** One-off message shown on the welcome screen (e.g. sign-in failed). */
+  readonly notice = signal<string | null>(null);
+  /** True when the app should show the welcome / sign-in screen instead of the workspace. */
+  readonly showWelcome = computed(() => this.authChecked() && !this.user() && !this.guest());
+  /** Signed in but no PIN yet: ask them to create one before checkout. */
+  readonly needsPin = computed(() => Boolean(this.user() && !this.user()!.hasPin));
   readonly session = signal<SessionView | null>(null);
   readonly busy = signal(false);
   readonly streamingText = signal('');
@@ -83,6 +112,35 @@ export class BuyWiseStore {
       this.error.set('Cannot reach the BuyWise backend. Is it running on port 3000?');
       return;
     }
+
+    // Result of a "Log in with PayPal" round trip (?login=ok|failed|cancelled).
+    const params = new URLSearchParams(location.search);
+    const login = params.get('login');
+    if (login) {
+      history.replaceState(null, '', location.pathname);
+      if (login === 'failed') this.notice.set('PayPal sign-in did not complete. Please try again, or continue as a guest.');
+      if (login === 'cancelled') this.notice.set('PayPal sign-in was cancelled.');
+    }
+
+    try {
+      const me = await this.api.me();
+      this.user.set(me.user);
+      this.paypalLoginAvailable.set(me.paypalLoginAvailable);
+    } catch {
+      this.user.set(null);
+    }
+    this.authChecked.set(true);
+    if (!this.user() && !readGuest()) return; // welcome screen decides
+
+    // A fresh sign-in starts a fresh conversation owned by that user.
+    if (login === 'ok') {
+      await this.newSession();
+      return;
+    }
+    await this.restoreOrCreateSession();
+  }
+
+  private async restoreOrCreateSession() {
     const existing = readSessionId();
     if (existing) {
       try {
@@ -93,6 +151,37 @@ export class BuyWiseStore {
       }
     }
     await this.newSession();
+  }
+
+  /** "Continue with PayPal": full-page redirect to PayPal's consent screen. */
+  signInWithPayPal() {
+    location.href = '/api/auth/paypal/start';
+  }
+
+  async continueAsGuest() {
+    writeGuest(true);
+    this.guest.set(true);
+    await this.restoreOrCreateSession();
+  }
+
+  async signOut() {
+    try {
+      await this.api.logout();
+    } catch {
+      /* already signed out */
+    }
+    this.user.set(null);
+    writeSessionId(null);
+    writeGuest(false);
+    this.guest.set(false);
+    this.session.set(null);
+    this.plan.set(null);
+    this.checkoutOpen.set(false);
+  }
+
+  async setPin(pin: string, currentPin?: string) {
+    const res = await this.api.setPin(pin, currentPin);
+    this.user.set(res.user);
   }
 
   async newSession() {

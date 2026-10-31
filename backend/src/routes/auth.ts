@@ -5,8 +5,10 @@ import { log } from "../lib/logger.js";
 import { authorizeUrl, consumeState, identityFromCode, redirectUri } from "../auth/paypal-login.js";
 import { userStore, userView } from "../auth/users.js";
 import { clearCookie, currentUser, readCookie, SESSION_COOKIE, setCookie } from "../auth/cookies.js";
+import { rateLimit } from "../security/rate-limit.js";
 
 export const auth = Router();
+auth.use(rateLimit({ name: "auth", max: 30, windowMs: 10 * 60 * 1000 }));
 
 const STATE_COOKIE = "bw_oauth_state";
 

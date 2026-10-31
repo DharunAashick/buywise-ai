@@ -3,10 +3,12 @@ import { BuyWiseStore } from './core/buywise.store';
 import { ChatPanel } from './chat/chat-panel';
 import { Dashboard } from './dashboard/dashboard';
 import { CheckoutPanel } from './checkout/checkout-panel';
+import { Welcome } from './auth/welcome';
+import { PinSetup } from './auth/pin-setup';
 
 @Component({
   selector: 'app-root',
-  imports: [ChatPanel, Dashboard, CheckoutPanel],
+  imports: [ChatPanel, Dashboard, CheckoutPanel, Welcome, PinSetup],
   templateUrl: './app.html',
   styleUrl: './app.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

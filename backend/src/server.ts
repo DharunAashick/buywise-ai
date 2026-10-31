@@ -13,6 +13,8 @@ import { TransitionError } from "./transactions/state-machine.js";
 
 const app = express();
 app.disable("x-powered-by");
+// Behind Render's proxy: trust one hop so rate limits see the real client IP.
+app.set("trust proxy", 1);
 app.use(cors({ origin: config.frontendUrl }));
 app.use(express.json({ limit: "256kb" }));
 app.use((_req, res, next) => {

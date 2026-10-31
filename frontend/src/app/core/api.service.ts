@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import type { AgentEvent, ApiErrorBody, AppConfig, PurchasePlan, SessionView } from './models';
+import type { AgentEvent, ApiErrorBody, AppConfig, AppUser, PurchasePlan, SessionView } from './models';
 
 export class ApiError extends Error {
   constructor(
@@ -36,6 +36,9 @@ const post = <T>(path: string, body?: unknown) => call<T>(path, { method: 'POST'
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   config = () => call<AppConfig>('/config');
+  me = () => call<{ user: AppUser | null; paypalLoginAvailable: boolean }>('/auth/me');
+  logout = () => post<{ ok: boolean }>('/auth/logout');
+  setPin = (pin: string, currentPin?: string) => post<{ user: AppUser }>('/auth/pin', { pin, currentPin });
   createSession = () => post<SessionView>('/sessions');
   getSession = (id: string) => call<SessionView>(`/sessions/${id}`);
   toggleComponent = (sessionId: string, optionId: string, componentId: string, included: boolean) =>

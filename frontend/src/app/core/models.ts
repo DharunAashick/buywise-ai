@@ -61,6 +61,7 @@ export interface SolutionOption {
   pros: string[];
   cons: string[];
   goalFit: number;
+  matchesRequest?: boolean;
   components: SolutionComponent[];
   bundle?: { bundleTitle: string; bundlePrice: number; separatePrice: number; savings: number };
   cost: CostBreakdown;
@@ -121,6 +122,15 @@ export interface SessionView {
   recommendedOptionId?: string;
   transcript: { role: 'user' | 'assistant'; text: string }[];
   plans: PurchasePlan[];
+}
+
+export interface AppUser {
+  id: string;
+  name: string;
+  email?: string;
+  country?: string;
+  countryCode?: string;
+  hasPin: boolean;
 }
 
 export interface AppConfig {

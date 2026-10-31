@@ -77,16 +77,62 @@
       </section>
     }
 
+    @if (askedVsPick(); as cmp) {
+      <section class="asked card">
+        <div class="asked-col">
+          <div class="eyebrow">You asked for</div>
+          <div class="asked-name">{{ cmp.asked.name }}</div>
+          <div class="asked-num num">{{ cmp.asked.cost.firstYearTotal | money: false : store.fx() }} <small>first year</small></div>
+        </div>
+        <div class="vs">vs</div>
+        <div class="asked-col best">
+          <div class="eyebrow">BuyWise recommends</div>
+          <div class="asked-name">{{ cmp.pick.name }}</div>
+          <div class="asked-num num">{{ cmp.pick.cost.firstYearTotal | money: false : store.fx() }} <small>first year</small></div>
+        </div>
+        <div class="asked-why">
+          @if (cmp.diff > 0) {
+            <b class="save">{{ cmp.diff | money: true : store.fx() }} less</b> over the first year, and it scores {{ cmp.pick.score?.total?.toFixed(1) }} vs {{ cmp.asked.score?.total?.toFixed(1) }}.
+          } @else {
+            Costs {{ -cmp.diff | money: true : store.fx() }} more, but scores higher on fit ({{ cmp.pick.score?.total?.toFixed(1) }} vs {{ cmp.asked.score?.total?.toFixed(1) }}).
+          }
+          Your call - you can still buy what you asked for.
+          <button class="btn small" (click)="store.startCheckout(cmp.asked)" [disabled]="store.busy()">Buy what I asked for</button>
+        </div>
+      </section>
+    }
+
     <section class="block">
       <div class="block-head">
-        <h3>Solution comparison</h3>
+        <h3>Option comparison</h3>
         <span class="hint">Click a row to inspect it · scores from the deterministic engine</span>
       </div>
       <app-comparison-grid [options]="store.options()" [fx]="store.fx()" [selectedId]="store.selected()?.id" (select)="store.selectedOptionId.set($event)" />
     </section>
 
+    <section class="block card chart-card">
+      <div class="block-head">
+        <h3>What each option really costs in year one</h3>
+        <span class="hint">Stacked by what you pay for · ★ = recommended</span>
+      </div>
+      <app-cost-chart [solutions]="store.options()" [fx]="store.fx()" [recommendedId]="rec()?.id" />
+    </section>
+
     @if (store.selected(); as sel) {
       <app-option-detail [option]="sel" [isRecommended]="sel.id === rec()?.id" />
     }
+
+    <section class="block">
+      <div class="block-head">
+        <h3>Everything you'd buy</h3>
+        <span class="hint">Untick an item to leave it out - every total recalculates</span>
+      </div>
+      <app-items-grid
+        [solutions]="store.options()"
+        [fx]="store.fx()"
+        [focusId]="store.selected()?.id"
+        (toggle)="store.toggleComponent($event.optionId, $event.componentId, $event.included)"
+      />
+    </section>
   }
 </div>

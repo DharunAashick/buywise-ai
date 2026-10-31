@@ -3,10 +3,12 @@ import { BuyWiseStore } from '../core/buywise.store';
 import { IMPACT_LABEL, money, MoneyPipe } from '../core/format';
 import { ComparisonGrid } from './comparison-grid';
 import { OptionDetail } from './option-detail';
+import { CostChart } from './cost-chart';
+import { ItemsGrid } from './items-grid';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [ComparisonGrid, OptionDetail, MoneyPipe],
+  imports: [ComparisonGrid, OptionDetail, CostChart, ItemsGrid, MoneyPipe],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -48,6 +50,14 @@ export class Dashboard {
       parts.push('prices from US retailers');
     }
     return parts.join(' · ');
+  });
+
+  /** "You asked for X vs we recommend Y" - only when the named product didn't rank first. */
+  protected askedVsPick = computed(() => {
+    const pick = this.rec();
+    const asked = this.store.options().find((o) => o.matchesRequest);
+    if (!pick || !asked || asked.id === pick.id) return null;
+    return { asked, pick, diff: asked.cost.firstYearTotal - pick.cost.firstYearTotal };
   });
 
   protected approaches = computed(() => [...new Set(this.store.options().map((o) => o.approach))]);

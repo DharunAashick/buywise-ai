@@ -14,6 +14,21 @@ services:
         value: sandbox
       - key: ALLOW_DEMO_CATALOG
         value: "true"
+      - key: AI_PROVIDER
+        value: gemini
+      - key: GEMINI_MODEL
+        value: gemini-3.5-flash-lite
+      # Hard cap on AI conversations per day for the public demo (protects the API bill).
+      - key: DAILY_AI_TURN_LIMIT
+        value: "400"
+      # Public URL of this service, e.g. https://buywise-ai.onrender.com - also the
+      # "Log in with PayPal" return URL base (<PUBLIC_URL>/api/auth/paypal/callback).
+      - key: PUBLIC_URL
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
       - key: ANTHROPIC_API_KEY
         sync: false
       - key: PAYPAL_CLIENT_ID
@@ -25,6 +40,4 @@ services:
       - key: CHANNEL3_API_KEY
         sync: false
       - key: DEMO_PIN
-        sync: false
-      - key: FRONTEND_URL
         sync: false

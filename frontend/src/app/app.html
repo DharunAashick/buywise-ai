@@ -13,7 +13,7 @@
     </svg>
     <div>
       <div class="name">BuyWise <span>AI</span></div>
-      <div class="tag">Goal → solution → true cost → PayPal</div>
+      <div class="tag">What you want → best option → true cost → PayPal</div>
     </div>
   </div>
 
@@ -24,20 +24,39 @@
         ● {{ cfg.catalogSource === 'channel3' ? 'Channel3 live' : 'Demo catalog' }}
       </span>
       <span class="pill" [class.on]="cfg.integrations.paypal">● PayPal {{ cfg.paypal.sandbox ? 'Sandbox' : 'Live' }}</span>
-      <button class="btn ghost small" (click)="store.newSession()" [disabled]="store.busy()">New goal</button>
+      @if (!store.showWelcome()) {
+        <button class="btn ghost small" (click)="store.newSession()" [disabled]="store.busy()">New chat</button>
+      }
+      @if (store.user(); as u) {
+        <span class="me" [title]="u.email ?? ''">
+          <span class="avatar">{{ u.name.charAt(0) }}</span>
+          <span class="who">{{ u.name }}</span>
+          <button class="link" (click)="store.signOut()">Log out</button>
+        </span>
+      } @else if (store.guest()) {
+        <button class="btn small signin" (click)="store.signInWithPayPal()" [disabled]="!store.paypalLoginAvailable()">Sign in with PayPal</button>
+      }
     </div>
   }
 </header>
 
-@if (store.error() && !store.session()) {
+@if (store.error() && !store.session() && !store.showWelcome()) {
   <div class="fatal card">{{ store.error() }}</div>
 }
 
-<main class="layout">
-  <app-chat-panel class="chat" />
-  <app-dashboard class="dash" />
-</main>
+@if (store.showWelcome()) {
+  <app-welcome />
+} @else {
+  <main class="layout">
+    <app-chat-panel class="chat" />
+    <app-dashboard class="dash" />
+  </main>
+}
 
 @if (store.checkoutOpen() && store.plan()) {
   <app-checkout-panel />
+}
+
+@if (store.needsPin()) {
+  <app-pin-setup />
 }

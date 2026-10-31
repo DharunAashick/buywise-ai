@@ -24,6 +24,7 @@ const { transactions, PlanError } = await import("../src/transactions/service.js
 const { executeTool } = await import("../src/agent/tools.js");
 const { canonicalJson, computeLock, verifyLock } = await import("../src/transactions/lock.js");
 const { canTransition } = await import("../src/transactions/state-machine.js");
+const { userStore } = await import("../src/auth/users.js");
 
 async function sessionWithOption() {
   const session = store.createSession();
@@ -155,6 +156,23 @@ describe("purchase flow", () => {
     captureOrder.mockResolvedValue({ status: "DECLINED", code: "INSTRUMENT_DECLINED" });
     const res = await transactions.capture(plan.id, "8AB12345CD678901E");
     expect(res.status).toBe("PAYMENT_DECLINED");
+  });
+
+  it("signed-in users authorise with their own PIN, not the demo PIN", async () => {
+    const user = userStore.upsertFromPayPal({ id: `pp-user-${Date.now()}`, name: "Test Buyer", countryCode: "IN" });
+    const session = await sessionWithOption();
+    session.userId = user.id;
+    store.saveSession(session);
+    const plan = transactions.createPlan(session.id, session.options[0].id);
+    const locked = await transactions.lock(plan.id);
+
+    await expect(transactions.authorize(plan.id, locked.lock!.hash, "2468")).rejects.toMatchObject({ code: "PIN_NOT_SET" });
+    userStore.setPin(user.id, "1357");
+    await expect(transactions.authorize(plan.id, locked.lock!.hash, "2468")).rejects.toMatchObject({ code: "INVALID_PIN" });
+
+    createOrderForPlan.mockResolvedValue({ orderId: "3CC33333CC333333C", status: "CREATED" });
+    const ok = await transactions.authorize(plan.id, locked.lock!.hash, "1357");
+    expect(ok.status).toBe("PAYMENT_PENDING");
   });
 
   it("rejects capture of an order that belongs to another plan", async () => {

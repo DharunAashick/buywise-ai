@@ -90,7 +90,11 @@
         </div>
         <p class="explain center">Enter your BuyWise PIN to authorise <strong>{{ p.pricing.total | money }}</strong>. The PIN is checked by the server and never reaches the AI.</p>
         <app-secure-pin [disabled]="working()" [message]="pinMessage()" (authorize)="authorize($event)" />
-        <p class="hint">Sandbox demo PIN is set by <code>DEMO_PIN</code> (see README).</p>
+        @if (store.user()) {
+          <p class="hint">Use the PIN you created when you signed in with PayPal.</p>
+        } @else {
+          <p class="hint">Guest mode: use the sandbox demo PIN from the README (<code>DEMO_PIN</code>).</p>
+        }
       }
 
       @case ('pay') {
