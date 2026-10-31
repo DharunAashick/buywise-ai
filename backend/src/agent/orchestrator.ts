@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { config } from "../config.js";
+import { aiProvider, config } from "../config.js";
+import { geminiTurn } from "./gemini.js";
 import { log } from "../lib/logger.js";
 import { store, type Session } from "../store/store.js";
 import { SYSTEM_PROMPT } from "./prompt.js";
@@ -14,19 +15,33 @@ export type AgentEvent =
   | { type: "done" };
 
 const MAX_ITERATIONS = 24;
-const client = new Anthropic();
+let anthropic: Anthropic | undefined;
 const busy = new Set<string>();
 
 export class SessionBusyError extends Error {}
 
 /**
- * One user turn: a manual tool-use loop over BuyWise tools and read-only PayPal Agent Toolkit tools.
- * The loop has no path to payment execution - that lives in the transaction service behind the PIN.
+ * One user turn: a manual tool-use loop over BuyWise tools and read-only PayPal Agent Toolkit tools,
+ * on whichever AI provider is configured. Neither loop has a path to payment execution - that lives in
+ * the transaction service behind the PIN.
  */
 export async function runAgentTurn(session: Session, userText: string, emit: (e: AgentEvent) => void): Promise<void> {
   if (busy.has(session.id)) throw new SessionBusyError("This conversation is still working on the previous message");
   busy.add(session.id);
   try {
+    if (aiProvider() === "gemini") await geminiTurn(session, userText, emit);
+    else await claudeTurn(session, userText, emit);
+    store.saveSession(session);
+    emit({ type: "state", sessionId: session.id });
+    emit({ type: "done" });
+  } finally {
+    busy.delete(session.id);
+  }
+}
+
+async function claudeTurn(session: Session, userText: string, emit: (e: AgentEvent) => void): Promise<void> {
+  const client = (anthropic ??= new Anthropic());
+  {
     session.messages.push({ role: "user", content: userText });
     store.saveSession(session);
 
@@ -100,11 +115,5 @@ export async function runAgentTurn(session: Session, userText: string, emit: (e:
       store.saveSession(session);
       emit({ type: "state", sessionId: session.id });
     }
-
-    store.saveSession(session);
-    emit({ type: "state", sessionId: session.id });
-    emit({ type: "done" });
-  } finally {
-    busy.delete(session.id);
   }
 }

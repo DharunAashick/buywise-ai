@@ -1,7 +1,8 @@
 import { Router, type Request, type Response, type NextFunction } from "express";
 import { z } from "zod/v4";
 import Anthropic from "@anthropic-ai/sdk";
-import { config, integrations } from "../config.js";
+import { aiModel, aiProvider, config, integrations } from "../config.js";
+import { geminiErrorMessage } from "../agent/gemini.js";
 import { log } from "../lib/logger.js";
 import { catalogSource } from "../catalog/index.js";
 import { calculateCost } from "../engine/cost.js";
@@ -28,7 +29,7 @@ function requireSession(id: string) {
 // ---------- Meta ----------
 
 api.get("/health", (_req, res) => {
-  res.json({ ok: true, integrations: { claude: integrations.claude(), channel3: integrations.channel3(), paypal: integrations.paypal() } });
+  res.json({ ok: true, ai: aiProvider(), integrations: { ai: integrations.ai(), channel3: integrations.channel3(), paypal: integrations.paypal() } });
 });
 
 api.get("/config", (_req, res) => {
@@ -36,8 +37,9 @@ api.get("/config", (_req, res) => {
     currency: config.currency,
     catalogSource: catalogSource(),
     paypal: { clientId: config.paypal.clientId || null, sandbox: config.paypal.sandbox },
-    integrations: { claude: integrations.claude(), channel3: integrations.channel3(), paypal: integrations.paypal() },
-    model: config.anthropic.model,
+    integrations: { ai: integrations.ai(), channel3: integrations.channel3(), paypal: integrations.paypal() },
+    aiProvider: aiProvider(),
+    model: aiModel(),
   });
 });
 
@@ -65,7 +67,10 @@ api.post(
   wrap(async (req, res) => {
     const s = requireSession(String(req.params.id));
     const body = ChatBody.parse(req.body);
-    if (!integrations.claude()) throw new PlanError("ANTHROPIC_API_KEY is not configured on the server", "CLAUDE_NOT_CONFIGURED", 503);
+    if (!integrations.ai()) {
+      const key = aiProvider() === "gemini" ? "GEMINI_API_KEY" : "ANTHROPIC_API_KEY";
+      throw new PlanError(`${key} is not configured on the server`, "AI_NOT_CONFIGURED", 503);
+    }
 
     res.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-cache", connection: "keep-alive", "x-accel-buffering": "no" });
     const send = (e: AgentEvent) => res.write(`data: ${JSON.stringify(e)}\n\n`);
@@ -77,6 +82,8 @@ api.post(
       const message =
         err instanceof SessionBusyError
           ? err.message
+          : geminiErrorMessage(err)
+          ? geminiErrorMessage(err)!
           : err instanceof Anthropic.RateLimitError
             ? "The AI service is busy right now. Please try again in a moment."
             : err instanceof Anthropic.APIError

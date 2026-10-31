@@ -17,7 +17,7 @@ Built for the PayPal AI Hackathon 2026.
 
 > "I want to get into gaming. I earn $2,000 a month."
 
-1. **Understands the goal, not the product.** Claude records the goal, experience and the budget figures the user chose to share.
+1. **Understands the goal, not the product.** The AI agent records the goal, experience and the budget figures the user chose to share.
 2. **Discovers solutions across categories:** consoles, gaming PCs, handhelds. It doesn't stop at the product the user named.
 3. **Finds the hidden requirements** for each solution and labels each one REQUIRED, RECOMMENDED or OPTIONAL: games, subscriptions, a second controller.
 4. **Checks bundles.** The engine compares a bundle against buying its parts separately, and only uses the bundle if it is actually cheaper.
@@ -32,7 +32,7 @@ Built for the PayPal AI Hackathon 2026.
 ```mermaid
 flowchart LR
   U[User - text or voice] --> FE[Angular app<br/>chat · AG Grid dashboard · checkout]
-  FE -- SSE chat --> AG[Claude agent loop<br/>claude-opus-5-5]
+  FE -- SSE chat --> AG[AI agent loop<br/>Gemini or Claude]
   AG -- tools --> T[BuyWise tools]
   T --> C3[Channel3 search<br/>or labelled demo catalog]
   T --> CE[Cost engine]
@@ -48,7 +48,7 @@ flowchart LR
 
 ### The key design decision: the AI can plan purchases but never move money
 
-| | Claude (agent) | Transaction service (backend) |
+| | AI agent (Gemini / Claude) | Transaction service (backend) |
 |---|---|---|
 | Search products, build options, rank | ✅ | |
 | Prepare a **draft** purchase plan | ✅ | |
@@ -56,7 +56,7 @@ flowchart LR
 | Lock plan, verify PIN | ❌ not in its toolset | ✅ |
 | Create / capture PayPal order | ❌ not in its toolset | ✅ (execution toolkit) |
 
-There are **two separate PayPal Agent Toolkit instances** with different action allow-lists (`backend/src/paypal/toolkit.ts`). The one given to Claude can only *read*. The money-moving actions belong to a second instance that only the transaction service holds, and only after a hash-verified, PIN-authorized plan. The restriction is structural, not a prompt instruction.
+There are **two separate PayPal Agent Toolkit instances** with different action allow-lists (`backend/src/paypal/toolkit.ts`). The one given to the AI agent can only *read*. The money-moving actions belong to a second instance that only the transaction service holds, and only after a hash-verified, PIN-authorized plan. The restriction is structural, not a prompt instruction.
 
 ### Transaction state machine
 
@@ -75,13 +75,14 @@ DRAFT → FINAL_REVIEW → LOCKED → AUTHORIZED → PAYMENT_PENDING → PAYMENT
 ## How each technology is used
 
 **PayPal (central)**
-- `@paypal/agent-toolkit`, read-only, exposed to Claude as tools: `get_order`, `list_transactions`, `get_shipment_tracking`. The agent can answer "did my order go through?" from real PayPal data.
+- `@paypal/agent-toolkit`, read-only, exposed to the AI agent as tools: `get_order`, `list_transactions`, `get_shipment_tracking`. The agent can answer "did my order go through?" from real PayPal data.
 - `@paypal/agent-toolkit`, execution: `create_order` (Orders v2, item-level breakdown) and `pay_order` (capture), called only by the transaction service.
 - PayPal JS SDK Buttons for buyer approval. The browser only passes the server-created order id.
 - Webhooks at `/api/webhooks/paypal`, verified with `verify-webhook-signature`, settle captures that complete asynchronously.
 
-**Claude (Anthropic API)**
-- A manual tool-use loop (`backend/src/agent/orchestrator.ts`) on `claude-opus-5-5` with adaptive thinking, streamed to the UI over server-sent events (text deltas and tool activity).
+**AI agent: Google Gemini or Anthropic Claude**
+- One provider-neutral tool registry (`backend/src/agent/tools.ts`) drives two manual function-calling loops: Gemini (`agent/gemini.ts`, default `gemini-2.5-flash`, thought signatures preserved) and Claude (`agent/orchestrator.ts`, `claude-opus-5-5` with adaptive thinking). Both stream to the UI over server-sent events (text deltas and tool activity).
+- The provider is picked by whichever key is set (`GEMINI_API_KEY` or `ANTHROPIC_API_KEY`), or forced with `AI_PROVIDER`.
 - Every tool input is validated with zod. Product ids must come from catalog results, so a made-up product is rejected.
 - Server-side refusal fallback is enabled (`fallbacks: "default"`). The system prompt is frozen and cached.
 
@@ -110,7 +111,7 @@ npm run dev:frontend                     # http://localhost:4200 (proxies /api)
 
 | Variable | Needed for | Where |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | the agent | console.anthropic.com |
+| `GEMINI_API_KEY` **or** `ANTHROPIC_API_KEY` | the agent | aistudio.google.com/apikey (free tier) or console.anthropic.com |
 | `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET` | checkout | developer.paypal.com → Apps & Credentials → **Sandbox** |
 | `CHANNEL3_API_KEY` | live product data (optional) | trychannel3.com |
 | `DEMO_PIN` | PIN authorization (default `2468`) | your choice |
@@ -139,7 +140,7 @@ The tests cover: exact cent arithmetic, bundle detection, neutral affordability 
 
 ```
 backend/src
-  agent/         orchestrator (Claude loop), tools (zod-validated), prompt
+  agent/         orchestrator + Claude loop, Gemini loop, tools (zod-validated, provider-neutral), prompt
   catalog/       Channel3 client + mapper, labelled demo catalog
   engine/        cost, affordability, scoring - deterministic, unit-tested
   transactions/  state machine, canonical-JSON hash lock, service (lock/authorize/capture)

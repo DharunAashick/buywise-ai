@@ -3,7 +3,7 @@ import cors from "cors";
 import path from "node:path";
 import fs from "node:fs";
 import { ZodError } from "zod/v4";
-import { config, integrations } from "./config.js";
+import { aiModel, aiProvider, config, integrations } from "./config.js";
 import { log } from "./lib/logger.js";
 import { api } from "./routes/api.js";
 import { webhooks } from "./routes/webhooks.js";
@@ -52,8 +52,9 @@ app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
 app.listen(config.port, () => {
   log("server_started", {
     port: config.port,
-    model: config.anthropic.model,
-    claude: integrations.claude(),
+    ai: aiProvider(),
+    model: aiModel(),
+    aiConfigured: integrations.ai(),
     channel3: integrations.channel3(),
     paypal: integrations.paypal(),
     paypalEnv: config.paypal.sandbox ? "sandbox" : "production",

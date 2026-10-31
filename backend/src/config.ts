@@ -14,6 +14,11 @@ export const config = {
     effort: (process.env.ANTHROPIC_EFFORT ?? "medium") as "low" | "medium" | "high" | "xhigh" | "max",
   },
 
+  gemini: {
+    apiKey: process.env.GEMINI_API_KEY ?? "",
+    model: process.env.GEMINI_MODEL ?? "gemini-2.5-flash",
+  },
+
   channel3: {
     apiKey: process.env.CHANNEL3_API_KEY ?? "",
     baseUrl: process.env.CHANNEL3_BASE_URL ?? "https://api.trychannel3.com",
@@ -42,8 +47,23 @@ export const config = {
   dataFile: process.env.DATA_FILE ?? "data/store.json",
 };
 
+export type AiProvider = "claude" | "gemini";
+
+/** AI_PROVIDER wins; otherwise Gemini if its key is set, else Claude. */
+export function aiProvider(): AiProvider {
+  const explicit = process.env.AI_PROVIDER?.toLowerCase();
+  if (explicit === "claude" || explicit === "gemini") return explicit;
+  return config.gemini.apiKey ? "gemini" : "claude";
+}
+
+export function aiModel(): string {
+  return aiProvider() === "gemini" ? config.gemini.model : config.anthropic.model;
+}
+
 export const integrations = {
   claude: () => Boolean(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN),
+  gemini: () => Boolean(config.gemini.apiKey),
+  ai: () => (aiProvider() === "gemini" ? Boolean(config.gemini.apiKey) : integrations.claude()),
   channel3: () => Boolean(config.channel3.apiKey),
   paypal: () => Boolean(config.paypal.clientId && config.paypal.clientSecret),
 };

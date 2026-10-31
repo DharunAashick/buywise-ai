@@ -2,13 +2,17 @@ import fs from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import type Anthropic from "@anthropic-ai/sdk";
+import type { Content } from "@google/genai";
 import { config } from "../config.js";
 import { log } from "../lib/logger.js";
 import type { PurchasePlan, SolutionOption, UserProfile } from "../domain/types.js";
 
 export interface Session {
   id: string;
+  /** Claude conversation history (append-only, includes thinking/tool blocks). */
   messages: Anthropic.Beta.BetaMessageParam[];
+  /** Gemini conversation history (append-only, includes thought signatures and function calls). */
+  gemini?: Content[];
   profile: UserProfile;
   options: SolutionOption[];
   recommendedOptionId?: string;

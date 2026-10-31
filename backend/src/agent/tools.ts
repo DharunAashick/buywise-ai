@@ -287,7 +287,14 @@ const TOOLS: Record<string, ToolDef> = {
 
 const PAYPAL_AGENT_TOOL_NAMES = new Set(["get_order", "list_transactions", "get_shipment_tracking"]);
 
-function paypalAgentTools(): Anthropic.Beta.BetaTool[] {
+/** Provider-neutral tool description; each orchestrator maps it to its own wire format. */
+export interface ToolSpec {
+  name: string;
+  description: string;
+  schema: Record<string, unknown>;
+}
+
+function paypalAgentTools(): ToolSpec[] {
   const toolkit = getAgentToolkit();
   if (!toolkit) return [];
   return toolkit
@@ -296,24 +303,32 @@ function paypalAgentTools(): Anthropic.Beta.BetaTool[] {
     .map((t) => ({
       name: t.function.name,
       description: `[PayPal] ${t.function.description ?? ""}`.slice(0, 1000),
-      input_schema: (t.function.parameters ?? { type: "object", properties: {} }) as Anthropic.Beta.BetaTool.InputSchema,
+      schema: (t.function.parameters ?? { type: "object", properties: {} }) as Record<string, unknown>,
     }));
 }
 
 // ---------- Registry ----------
 
-let cachedTools: Anthropic.Beta.BetaTool[] | undefined;
+let cachedSpecs: ToolSpec[] | undefined;
 
-export function toolDefinitions(): Anthropic.Beta.BetaTool[] {
-  cachedTools ??= [
+export function toolSpecs(): ToolSpec[] {
+  cachedSpecs ??= [
     ...Object.entries(TOOLS).map(([name, def]) => ({
       name,
       description: def.description,
-      input_schema: z.toJSONSchema(def.schema, { target: "draft-7" }) as Anthropic.Beta.BetaTool.InputSchema,
+      schema: z.toJSONSchema(def.schema, { target: "draft-7" }) as Record<string, unknown>,
     })),
     ...paypalAgentTools(),
   ];
-  return cachedTools;
+  return cachedSpecs;
+}
+
+export function toolDefinitions(): Anthropic.Beta.BetaTool[] {
+  return toolSpecs().map((s) => ({
+    name: s.name,
+    description: s.description,
+    input_schema: s.schema as Anthropic.Beta.BetaTool.InputSchema,
+  }));
 }
 
 export class ToolInputError extends Error {}

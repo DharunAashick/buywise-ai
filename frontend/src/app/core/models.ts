@@ -124,7 +124,8 @@ export interface AppConfig {
   currency: string;
   catalogSource: 'channel3' | 'demo-catalog';
   paypal: { clientId: string | null; sandbox: boolean };
-  integrations: { claude: boolean; channel3: boolean; paypal: boolean };
+  integrations: { ai: boolean; channel3: boolean; paypal: boolean };
+  aiProvider: 'claude' | 'gemini';
   model: string;
 }
 

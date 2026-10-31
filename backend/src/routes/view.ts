@@ -1,6 +1,7 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import type { PurchasePlan } from "../domain/types.js";
 import type { Session } from "../store/store.js";
+import { geminiTranscript } from "../agent/gemini.js";
 
 export interface TranscriptEntry {
   role: "user" | "assistant";
@@ -39,7 +40,7 @@ export function sessionView(session: Session, plans: PurchasePlan[]) {
     profile: session.profile,
     options: session.options,
     recommendedOptionId: session.recommendedOptionId,
-    transcript: transcript(session.messages),
+    transcript: session.gemini?.length ? geminiTranscript(session.gemini) : transcript(session.messages),
     plans: plans.map(planView),
     updatedAt: session.updatedAt,
   };
