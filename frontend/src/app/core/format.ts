@@ -16,6 +16,25 @@ export class MoneyPipe implements PipeTransform {
   }
 }
 
+/** "gemini-3.5-flash-lite" -> "Gemini 3.5 Flash-Lite", "claude-opus-5-5" -> "Claude Opus 5.5". */
+export function modelLabel(model: string | undefined): string {
+  if (!model) return 'AI';
+  const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+  if (model.startsWith('gemini-')) {
+    const rest = model.slice(7).replace(/-preview.*$/, '');
+    const m = /^(\d+(?:\.\d+)?)-(.+)$/.exec(rest);
+    if (!m) return `Gemini ${rest}`;
+    return `Gemini ${m[1]} ${m[2].split('-').map(cap).join('-')}`;
+  }
+  if (model.startsWith('claude-')) {
+    const parts = model.slice(7).split('-');
+    const family = cap(parts[0]);
+    const version = parts.slice(1).filter((p) => /^\d+$/.test(p)).join('.');
+    return `Claude ${family}${version ? ' ' + version : ''}`;
+  }
+  return model;
+}
+
 export const IMPACT_LABEL: Record<Impact, string> = {
   LOW: 'Low impact',
   MODERATE: 'Moderate impact',

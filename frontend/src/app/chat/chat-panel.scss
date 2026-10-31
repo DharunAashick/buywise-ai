@@ -102,17 +102,18 @@
   max-width: 100%;
   min-width: 0;
   overflow-wrap: anywhere;
-  :is(p) {
+  // Message HTML comes from [innerHTML], which Angular's style scoping doesn't reach.
+  ::ng-deep p {
     margin: 0 0 6px;
   }
-  :is(p):last-child {
+  ::ng-deep p:last-child {
     margin-bottom: 0;
   }
-  :is(ul) {
+  ::ng-deep ul {
     margin: 4px 0 6px;
     padding-left: 18px;
   }
-  :is(strong) {
+  ::ng-deep strong {
     color: #fff;
   }
 }
@@ -150,6 +151,93 @@
   .err {
     color: var(--amber);
     font-size: 11px;
+  }
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 12px;
+  margin-bottom: 8px;
+  color: var(--text-2);
+  .model {
+    font-weight: 700;
+    background: var(--grad);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .sep {
+    color: var(--text-3);
+  }
+  .what {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .dots {
+    display: inline-flex;
+    gap: 3px;
+    margin-left: 2px;
+    i {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: currentColor;
+      animation: bounce 1.2s infinite;
+      &:nth-child(2) {
+        animation-delay: 0.15s;
+      }
+      &:nth-child(3) {
+        animation-delay: 0.3s;
+      }
+    }
+  }
+  &.is-typing {
+    color: var(--accent);
+  }
+}
+
+/* Blinking caret after the last streamed character (content is [innerHTML], so needs ::ng-deep) */
+.streaming ::ng-deep > :last-child::after {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  background: var(--accent);
+  animation: caret 1s steps(1) infinite;
+}
+
+.powered {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-3);
+  b {
+    color: var(--text-2);
+    font-weight: 600;
+  }
+  .pulse {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--mint);
+    flex: none;
+  }
+  &.busy {
+    color: var(--text-2);
+    b {
+      color: var(--accent);
+    }
+    .pulse {
+      background: var(--accent);
+      animation: pulse 1s ease-in-out infinite;
+    }
   }
 }
 
@@ -238,6 +326,11 @@
 @keyframes pulse {
   50% {
     opacity: 0.55;
+  }
+}
+@keyframes caret {
+  50% {
+    opacity: 0;
   }
 }
 @keyframes bounce {

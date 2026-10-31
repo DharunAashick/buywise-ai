@@ -1,6 +1,7 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { ApiError, ApiService } from './api.service';
 import type { AppConfig, PurchasePlan, SessionView, SolutionOption } from './models';
+import { modelLabel } from './format';
 
 export interface ActivityItem {
   id: string;
@@ -45,6 +46,18 @@ export class BuyWiseStore {
   readonly plan = signal<PurchasePlan | null>(null);
   /** Fires with the final assistant text of each turn (used for voice read-out). */
   readonly lastReply = signal<{ text: string; at: number } | null>(null);
+
+  /** Human-readable name of the model answering, e.g. "Gemini 3.5 Flash-Lite". */
+  readonly modelName = computed(() => modelLabel(this.config()?.model));
+
+  /** What the agent is doing right now, for the live status line. */
+  readonly phase = computed<{ kind: 'thinking' | 'tool' | 'typing'; label: string } | null>(() => {
+    if (!this.busy()) return null;
+    const running = [...this.activity()].reverse().find((a) => a.state === 'running');
+    if (running) return { kind: 'tool', label: running.label };
+    if (this.streamingText()) return { kind: 'typing', label: 'Typing' };
+    return { kind: 'thinking', label: this.activity().length ? 'Analysing results' : 'Thinking' };
+  });
 
   readonly options = computed(() => this.session()?.options ?? []);
   readonly recommended = computed<SolutionOption | undefined>(() => {

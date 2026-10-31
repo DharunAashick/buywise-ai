@@ -19,7 +19,7 @@
 
   @if (store.config(); as cfg) {
     <div class="status">
-      <span class="pill" [class.on]="cfg.integrations.ai" [title]="'Agent model: ' + cfg.model">● {{ cfg.aiProvider === 'gemini' ? 'Gemini' : 'Claude' }}</span>
+      <span class="pill" [class.on]="cfg.integrations.ai" [title]="'Agent model: ' + cfg.model">● {{ store.modelName() }}</span>
       <span class="pill" [class.on]="cfg.integrations.channel3" [title]="cfg.catalogSource === 'channel3' ? 'Live Channel3 catalog' : 'Offline demo catalog (no CHANNEL3_API_KEY)'">
         ● {{ cfg.catalogSource === 'channel3' ? 'Channel3 live' : 'Demo catalog' }}
       </span>

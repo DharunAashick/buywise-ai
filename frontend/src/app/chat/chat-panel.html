@@ -34,6 +34,13 @@
       <div class="msg">
         <div class="avatar live">BW</div>
         <div class="bubble live">
+          @if (store.phase(); as ph) {
+            <div [class]="'status is-' + ph.kind" aria-live="polite">
+              <span class="model">{{ store.modelName() }}</span>
+              <span class="sep">·</span>
+              <span class="what">{{ ph.label }}</span><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+            </div>
+          }
           @if (store.activity().length) {
             <ul class="activity">
               @for (a of store.activity(); track a.id) {
@@ -47,7 +54,7 @@
             </ul>
           }
           @if (store.streamingText()) {
-            <div [innerHTML]="render(store.streamingText())"></div>
+            <div class="streaming" [innerHTML]="render(store.streamingText())"></div>
           } @else if (!store.activity().length) {
             <div class="typing"><span></span><span></span><span></span></div>
           }
@@ -61,6 +68,14 @@
   </div>
 
   <div class="composer">
+    <div class="powered" [class.busy]="store.busy()" aria-live="polite">
+      <span class="pulse"></span>
+      @if (store.phase(); as ph) {
+        <span><b>{{ store.modelName() }}</b> is {{ ph.kind === 'typing' ? 'typing' : ph.kind === 'tool' ? 'working' : 'thinking' }}…</span>
+      } @else {
+        <span>Powered by <b>{{ store.modelName() }}</b></span>
+      }
+    </div>
     <textarea
       rows="2"
       placeholder="Describe your goal, budget, or ask “why this option?”"
