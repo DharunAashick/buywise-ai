@@ -8,6 +8,7 @@ import { assessAffordability } from "../engine/affordability.js";
 import type { PurchasePlan, SolutionOption } from "../domain/types.js";
 import { store, type Session } from "../store/store.js";
 import { verifyPin } from "../security/pin.js";
+import { userStore } from "../auth/users.js";
 import { captureOrder, createOrderForPlan, PayPalError } from "../paypal/orders.js";
 import { computeLock, verifyLock } from "./lock.js";
 import { transition } from "./state-machine.js";
@@ -143,7 +144,13 @@ export const transactions = {
       throw new PlanError("PayPal sandbox is not configured on the server (PAYPAL_CLIENT_ID / PAYPAL_CLIENT_SECRET)", "PAYPAL_NOT_CONFIGURED", 503);
     }
 
-    const pinResult = verifyPin(planId, pin);
+    // Signed-in users authorise with their own PIN; guest sessions use the demo PIN.
+    const owner = store.getSession(plan.sessionId)?.userId;
+    const user = owner ? userStore.get(owner) : undefined;
+    if (owner && !user?.pin) {
+      throw new PlanError("Set your BuyWise PIN first", "PIN_NOT_SET", 409);
+    }
+    const pinResult = verifyPin(planId, pin, user ? (p) => userStore.checkPin(user, p) : undefined);
     if (!pinResult.ok) {
       if (plan.status === "LOCKED") transition(plan, "AUTHORIZATION_FAILED", pinResult.reason);
       if (pinResult.reason === "LOCKED_OUT") transition(plan, "CANCELLED", "too many PIN attempts");

@@ -1,4 +1,4 @@
-import { formatMoney } from "../lib/money.js";
+import { formatForUser, type LocalFx } from "../lib/money.js";
 import type { Affordability, CostBreakdown, UserProfile } from "../domain/types.js";
 
 // Decision support, not financial advice: we only compare the purchase with figures the user
@@ -7,12 +7,14 @@ import type { Affordability, CostBreakdown, UserProfile } from "../domain/types.
 const DEFAULT_SAVINGS_RATE = 0.2; // assumed share of income a person could set aside, when no budget is given
 
 export function assessAffordability(cost: CostBreakdown, profile: UserProfile): Affordability {
+  const fx = localFx(profile);
+  const fmt = (cents: number) => formatForUser(cents, fx);
   const notes: string[] = [];
   const income = profile.monthlyIncome;
 
   if (!income) {
     if (profile.maxUpfront && cost.upfrontTotal > profile.maxUpfront) {
-      notes.push(`Upfront cost is ${formatMoney(cost.upfrontTotal - profile.maxUpfront)} above the stated maximum.`);
+      notes.push(`Upfront cost is ${fmt(cost.upfrontTotal - profile.maxUpfront)} above the stated maximum.`);
       return { impact: "HIGH", notes };
     }
     notes.push("No income or budget shared, so financial impact was not assessed.");
@@ -32,11 +34,11 @@ export function assessAffordability(cost: CostBreakdown, profile: UserProfile): 
   const monthsOfSavingNeeded = Math.max(1, Math.ceil(cost.upfrontTotal / monthlySaving));
   if (impact === "HIGH" || impact === "VERY_HIGH") {
     notes.push(
-      `Saving ${formatMoney(monthlySaving)}/month${profile.monthlyBudget ? "" : " (20% of income)"} would cover it in about ${monthsOfSavingNeeded} months.`,
+      `Saving ${fmt(monthlySaving)}/month${profile.monthlyBudget ? "" : " (20% of income)"} would cover it in about ${monthsOfSavingNeeded} months.`,
     );
   }
   if (profile.maxUpfront && cost.upfrontTotal > profile.maxUpfront) {
-    notes.push(`Upfront cost is ${formatMoney(cost.upfrontTotal - profile.maxUpfront)} above the stated maximum.`);
+    notes.push(`Upfront cost is ${fmt(cost.upfrontTotal - profile.maxUpfront)} above the stated maximum.`);
   }
 
   return {
@@ -48,4 +50,10 @@ export function assessAffordability(cost: CostBreakdown, profile: UserProfile): 
     monthsOfSavingNeeded,
     notes,
   };
+}
+
+/** The user's own currency, if they stated their salary in one (amounts are still computed in USD). */
+export function localFx(profile: UserProfile): LocalFx | undefined {
+  const s = profile.statedIncome;
+  return s && s.currency !== "USD" ? { currency: s.currency, usdRate: s.usdRate } : undefined;
 }

@@ -12,7 +12,11 @@ const attempts = new Map<string, number>();
 
 export type PinResult = { ok: true } | { ok: false; reason: "INVALID_PIN" | "LOCKED_OUT"; attemptsLeft: number };
 
-export function verifyPin(planId: string, pin: unknown): PinResult {
+/**
+ * Checks a PIN for a plan with per-plan attempt limits. `userCheck` verifies a signed-in user's own
+ * PIN; guests fall back to the demo PIN.
+ */
+export function verifyPin(planId: string, pin: unknown, userCheck?: (pin: string) => boolean): PinResult {
   const used = attempts.get(planId) ?? 0;
   const max = config.security.maxPinAttempts;
   if (used >= max) return { ok: false, reason: "LOCKED_OUT", attemptsLeft: 0 };
@@ -20,7 +24,7 @@ export function verifyPin(planId: string, pin: unknown): PinResult {
   const valid =
     typeof pin === "string" &&
     /^\d{4,8}$/.test(pin) &&
-    timingSafeEqual(scryptSync(pin, salt, 32), pinHash);
+    (userCheck ? userCheck(pin) : timingSafeEqual(scryptSync(pin, salt, 32), pinHash));
 
   if (valid) {
     attempts.delete(planId);

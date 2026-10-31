@@ -38,16 +38,19 @@
         }
         <div class="line sub"><span>Shipping & tax</span><span>Calculated by retailer</span></div>
         <div class="line total"><span>Charged now via PayPal</span><span class="num">{{ p.pricing.total | money }}</span></div>
+        @if (store.fx(); as fx) {
+          <div class="line sub local"><span>About {{ p.pricing.total | money: false : fx }} in {{ fx.currency }}</span><span>PayPal charges in USD; your bank converts</span></div>
+        }
       </div>
       @if (p.recurring.length) {
         <div class="recurring">
           <div class="eyebrow">Not charged now · ongoing</div>
           @for (r of p.recurring; track r.name) {
-            <div class="line sub"><span>{{ r.name }}</span><span class="num">{{ r.monthly | money }}/mo</span></div>
+            <div class="line sub"><span>{{ r.name }}</span><span class="num">{{ r.monthly | money: false : store.fx() }}/mo</span></div>
           }
         </div>
       }
-      <div class="line year"><span>True first-year cost</span><span class="num">{{ p.ownership.firstYearCost | money }}</span></div>
+      <div class="line year"><span>True first-year cost</span><span class="num">{{ p.ownership.firstYearCost | money: false : store.fx() }}</span></div>
     </div>
 
     @switch (step()) {

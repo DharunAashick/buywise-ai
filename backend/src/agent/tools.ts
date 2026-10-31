@@ -1,11 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod/v4";
 import type Anthropic from "@anthropic-ai/sdk";
-import { formatMoney, toCents } from "../lib/money.js";
+import { formatLocal, formatMoney, toCents, type LocalFx } from "../lib/money.js";
 import { toUsd } from "../lib/fx.js";
 import { getProduct, searchProducts } from "../catalog/index.js";
 import { calculateCost, checkBundle } from "../engine/cost.js";
-import { assessAffordability } from "../engine/affordability.js";
+import { assessAffordability, localFx } from "../engine/affordability.js";
 import { scoreOptions } from "../engine/scoring.js";
 import type { SolutionComponent, SolutionOption } from "../domain/types.js";
 import { store, type Session } from "../store/store.js";
@@ -40,7 +40,7 @@ const CHANNEL3_MARKETS: Record<string, string> = {
   greece: "GR", romania: "RO",
 };
 
-function catalogMarket(country: string): string {
+export function catalogMarket(country: string): string {
   return CHANNEL3_MARKETS[country.trim().toLowerCase()] ?? "US";
 }
 
@@ -110,7 +110,8 @@ function productSummary(p: Awaited<ReturnType<typeof searchProducts>>[number]) {
   };
 }
 
-function optionSummary(o: SolutionOption) {
+function optionSummary(o: SolutionOption, fx?: LocalFx) {
+  const local = (cents: number) => (fx ? formatLocal(cents, fx) : undefined);
   return {
     option_id: o.id,
     name: o.name,
@@ -118,6 +119,15 @@ function optionSummary(o: SolutionOption) {
     upfront_total: formatMoney(o.cost.upfrontTotal),
     monthly_recurring: formatMoney(o.cost.monthlyRecurring),
     first_year_total: formatMoney(o.cost.firstYearTotal),
+    // Approximate amounts in the user's own currency - quote these to the user.
+    in_user_currency: fx
+      ? {
+          currency: fx.currency,
+          upfront_total: local(o.cost.upfrontTotal),
+          monthly_recurring: local(o.cost.monthlyRecurring),
+          first_year_total: local(o.cost.firstYearTotal),
+        }
+      : undefined,
     bundle: o.bundle
       ? { title: o.bundle.bundleTitle, used: o.bundle.savings > 0, savings: formatMoney(o.bundle.savings) }
       : undefined,
@@ -316,7 +326,7 @@ const TOOLS: Record<string, ToolDef> = {
       session.options.push(option);
       session.rankGapWarned = false; // options changed: check comparability again
       rescore(session);
-      return optionSummary(session.options.find((o) => o.id === option.id)!);
+      return optionSummary(session.options.find((o) => o.id === option.id)!, localFx(session.profile));
     },
   },
 
@@ -339,7 +349,7 @@ const TOOLS: Record<string, ToolDef> = {
       rescore(session);
       return {
         weights: "cost 30%, goal fit 30%, budget fit 20%, bundle value 10%, availability 10%",
-        ranking: session.options.map(optionSummary),
+        ranking: session.options.map((o) => optionSummary(o, localFx(session.profile))),
         warnings: gaps.length ? gaps.map((g) => `${g} Mention this when comparing costs.`) : undefined,
       };
     },
@@ -369,7 +379,8 @@ const TOOLS: Record<string, ToolDef> = {
         upfront_total: formatMoney(plan.pricing.total),
         monthly_recurring: formatMoney(plan.ownership.monthlyRecurring),
         first_year_cost: formatMoney(plan.ownership.firstYearCost),
-        next_step: "User reviews and locks the plan in the checkout panel, then approves with PIN and PayPal.",
+        charged_in_user_currency_approx: localFx(session.profile) ? formatLocal(plan.pricing.total, localFx(session.profile)!) : undefined,
+        next_step: "User reviews and locks the plan in the checkout panel, then approves with PIN and PayPal. PayPal charges the exact USD amount.",
       };
     },
   },

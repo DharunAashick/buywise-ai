@@ -4,15 +4,36 @@ import type { Impact } from './models';
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 const usd0 = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 
-export function money(cents: number | undefined | null, whole = false): string {
+/** The user's own currency (from their stated salary) and USD per unit of it. */
+export interface Fx {
+  currency: string;
+  usdRate: number;
+}
+
+const LOCALE_FOR: Record<string, string> = { INR: 'en-IN', EUR: 'de-DE', GBP: 'en-GB', JPY: 'ja-JP' };
+const localFormatters = new Map<string, Intl.NumberFormat>();
+
+/**
+ * Formats USD cents. With `fx`, shows the amount in the user's own currency instead (whole units,
+ * since it's a conversion); PayPal still charges the exact USD amount.
+ */
+export function money(cents: number | undefined | null, whole = false, fx?: Fx | null): string {
   if (cents === undefined || cents === null) return '-';
+  if (fx && fx.currency !== 'USD') {
+    let f = localFormatters.get(fx.currency);
+    if (!f) {
+      f = new Intl.NumberFormat(LOCALE_FOR[fx.currency] ?? 'en-US', { style: 'currency', currency: fx.currency, maximumFractionDigits: 0 });
+      localFormatters.set(fx.currency, f);
+    }
+    return f.format(cents / 100 / fx.usdRate);
+  }
   return (whole ? usd0 : usd).format(cents / 100);
 }
 
 @Pipe({ name: 'money' })
 export class MoneyPipe implements PipeTransform {
-  transform(cents: number | undefined | null, whole = false): string {
-    return money(cents, whole);
+  transform(cents: number | undefined | null, whole = false, fx?: Fx | null): string {
+    return money(cents, whole, fx);
   }
 }
 

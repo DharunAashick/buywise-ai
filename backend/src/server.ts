@@ -7,6 +7,7 @@ import { aiModel, aiProvider, config, integrations } from "./config.js";
 import { log } from "./lib/logger.js";
 import { api } from "./routes/api.js";
 import { webhooks } from "./routes/webhooks.js";
+import { auth } from "./routes/auth.js";
 import { PlanError } from "./transactions/service.js";
 import { TransitionError } from "./transactions/state-machine.js";
 
@@ -22,6 +23,7 @@ app.use((_req, res, next) => {
 
 app.use("/api", api);
 app.use("/api/webhooks", webhooks);
+app.use("/api/auth", auth);
 if (process.env.DEV_SEED === "true" && process.env.NODE_ENV !== "production") {
   const { dev } = await import("./routes/dev.js");
   app.use("/api/dev", dev);

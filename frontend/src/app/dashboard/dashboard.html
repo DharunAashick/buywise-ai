@@ -2,14 +2,14 @@
   @if (store.options().length === 0) {
     <section class="empty">
       <div class="flow">
-        @for (step of ['Goal', 'Solutions', 'Hidden needs', 'True cost', 'Budget fit', 'Recommend', 'You approve', 'PayPal']; track step; let i = $index) {
+        @for (step of ['What you want', 'Options', 'What else you need', 'True cost', 'Salary fit', 'Recommend', 'You approve', 'PayPal']; track step; let i = $index) {
           <div class="step" [style.animation-delay]="i * 70 + 'ms'">
             <span class="n">{{ i + 1 }}</span>{{ step }}
           </div>
         }
       </div>
-      <h2>Most shopping assistants answer the question you asked.</h2>
-      <p>BuyWise answers the one you should have asked: <strong>what's the best way to reach your goal, and what will it really cost?</strong></p>
+      <h2>Most shopping assistants just find the product you named.</h2>
+      <p>BuyWise finds <strong>the best thing to buy for you, what it will really cost, and whether it fits your salary</strong> - then PayPal handles the payment.</p>
       @if (store.busy()) {
         <div class="scanning"><span></span>Discovering solutions…</div>
       }
@@ -18,7 +18,7 @@
     @if (rec(); as r) {
       <section class="hero card">
         <div class="hero-main">
-          <div class="eyebrow">Recommended for “{{ profile()?.goal || 'your goal' }}”</div>
+          <div class="eyebrow">Recommended for “{{ profile()?.goal || 'what you want' }}”</div>
           @if (profileLine()) {
             <div class="who">{{ profileLine() }}</div>
           }
@@ -37,17 +37,23 @@
       <section class="kpis">
         <div class="kpi card">
           <div class="eyebrow">Pay today</div>
-          <div class="v num">{{ r.cost.upfrontTotal | money }}</div>
-          <div class="s">Through PayPal checkout</div>
+          <div class="v num">{{ r.cost.upfrontTotal | money: false : store.fx() }}</div>
+          <div class="s">
+            @if (store.fx()) {
+              PayPal charges {{ r.cost.upfrontTotal | money }} (USD)
+            } @else {
+              Through PayPal checkout
+            }
+          </div>
         </div>
         <div class="kpi card">
           <div class="eyebrow">Monthly after</div>
-          <div class="v num">{{ r.cost.monthlyRecurring | money }}</div>
+          <div class="v num">{{ r.cost.monthlyRecurring | money: false : store.fx() }}</div>
           <div class="s">Subscriptions, billed by provider</div>
         </div>
         <div class="kpi card accent">
           <div class="eyebrow">True first-year cost</div>
-          <div class="v num">{{ r.cost.firstYearTotal | money }}</div>
+          <div class="v num">{{ r.cost.firstYearTotal | money: false : store.fx() }}</div>
           <div class="s">Hardware + games + 12 months of subscriptions</div>
         </div>
         <div class="kpi card">
@@ -64,7 +70,7 @@
         @if (spread() > 0) {
           <div class="kpi card">
             <div class="eyebrow">Saved vs priciest option</div>
-            <div class="v num save">{{ spread() | money: true }}</div>
+            <div class="v num save">{{ spread() | money: true : store.fx() }}</div>
             <div class="s">First-year basis</div>
           </div>
         }
@@ -76,7 +82,7 @@
         <h3>Solution comparison</h3>
         <span class="hint">Click a row to inspect it · scores from the deterministic engine</span>
       </div>
-      <app-comparison-grid [options]="store.options()" [selectedId]="store.selected()?.id" (select)="store.selectedOptionId.set($event)" />
+      <app-comparison-grid [options]="store.options()" [fx]="store.fx()" [selectedId]="store.selected()?.id" (select)="store.selectedOptionId.set($event)" />
     </section>
 
     @if (store.selected(); as sel) {

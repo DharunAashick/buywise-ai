@@ -8,6 +8,8 @@ function bool(value: string | undefined, fallback: boolean): boolean {
 export const config = {
   port: Number(process.env.PORT ?? 3000),
   frontendUrl: process.env.FRONTEND_URL ?? "http://localhost:4200",
+  /** Public origin users load the app from (Log in with PayPal returns here, via /api). */
+  publicUrl: (process.env.PUBLIC_URL ?? process.env.FRONTEND_URL ?? "http://localhost:4200").replace(/\/$/, ""),
 
   anthropic: {
     model: process.env.ANTHROPIC_MODEL ?? "claude-opus-5-5",

@@ -50,9 +50,9 @@ function functionDeclarations(): FunctionDeclaration[] {
 }
 
 /** One user turn on Gemini with manual function calling (automatic calling disabled so we control every tool run). */
-export async function geminiTurn(session: Session, userText: string, emit: (e: AgentEvent) => void): Promise<void> {
+export async function geminiTurn(session: Session, userText: string, emit: (e: AgentEvent) => void, note?: string): Promise<void> {
   const history = (session.gemini ??= []);
-  history.push({ role: "user", parts: [{ text: userText }] });
+  history.push({ role: "user", parts: note ? [{ text: note }, { text: userText }] : [{ text: userText }] });
   store.saveSession(session);
 
   for (let i = 0; i < MAX_ITERATIONS; i++) {
@@ -162,7 +162,7 @@ export function geminiTranscript(history: Content[]): { role: "user" | "assistan
   const out: { role: "user" | "assistant"; text: string }[] = [];
   for (const c of history) {
     const text = (c.parts ?? [])
-      .filter((p) => p.text && !p.thought)
+      .filter((p) => p.text && !p.thought && !p.text.startsWith("[context]"))
       .map((p) => p.text)
       .join("");
     if (!text.trim()) continue;

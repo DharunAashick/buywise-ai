@@ -29,8 +29,9 @@ export async function runAgentTurn(session: Session, userText: string, emit: (e:
   if (busy.has(session.id)) throw new SessionBusyError("This conversation is still working on the previous message");
   busy.add(session.id);
   try {
-    if (aiProvider() === "gemini") await geminiTurn(session, userText, emit);
-    else await claudeTurn(session, userText, emit);
+    const note = contextNote(session);
+    if (aiProvider() === "gemini") await geminiTurn(session, userText, emit, note);
+    else await claudeTurn(session, userText, emit, note);
     store.saveSession(session);
     emit({ type: "state", sessionId: session.id });
     emit({ type: "done" });
@@ -39,10 +40,23 @@ export async function runAgentTurn(session: Session, userText: string, emit: (e:
   }
 }
 
-async function claudeTurn(session: Session, userText: string, emit: (e: AgentEvent) => void): Promise<void> {
+/** Marker for app-supplied context parts; transcripts hide them. */
+export const CONTEXT_PREFIX = "[context]";
+
+/** First turn of a PayPal-signed-in session: tell the agent what PayPal already told us. */
+function contextNote(session: Session): string | undefined {
+  const firstTurn = session.messages.length === 0 && !(session.gemini?.length);
+  if (!firstTurn || !session.profile.country) return undefined;
+  return `${CONTEXT_PREFIX} The user signed in with PayPal. Their country is ${session.profile.country} (from their PayPal profile) - do not ask for country again; ask only for monthly salary during intake, and record it with update_user_profile including country "${session.profile.country}".`;
+}
+
+async function claudeTurn(session: Session, userText: string, emit: (e: AgentEvent) => void, note?: string): Promise<void> {
   const client = (anthropic ??= new Anthropic());
   {
-    session.messages.push({ role: "user", content: userText });
+    session.messages.push({
+      role: "user",
+      content: note ? [{ type: "text", text: note }, { type: "text", text: userText }] : userText,
+    });
     store.saveSession(session);
 
     const tools = toolDefinitions().map((t) => ({ ...t, eager_input_streaming: true }));

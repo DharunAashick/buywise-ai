@@ -12,6 +12,8 @@ import { store } from "../store/store.js";
 import { runAgentTurn, SessionBusyError, type AgentEvent } from "../agent/orchestrator.js";
 import { PlanError, transactions } from "../transactions/service.js";
 import { planView, sessionView } from "./view.js";
+import { currentUser } from "../auth/cookies.js";
+import { catalogMarket } from "../agent/tools.js";
 
 export const api = Router();
 
@@ -20,10 +22,19 @@ const wrap =
   (req: Request, res: Response, next: NextFunction) =>
     Promise.resolve(fn(req, res)).catch(next);
 
-function requireSession(id: string) {
+/** A session is visible only to its owner (signed-in user) or, for guest sessions, to anyone holding its id. */
+function requireSession(req: Request, id: string) {
   const s = store.getSession(id);
-  if (!s) throw new PlanError("Session not found", "SESSION_NOT_FOUND", 404);
+  if (!s || (s.userId && s.userId !== currentUser(req)?.id)) throw new PlanError("Session not found", "SESSION_NOT_FOUND", 404);
   return s;
+}
+
+/** Plans inherit their session's ownership. */
+function requirePlanAccess(req: Request, planId: string) {
+  const plan = store.getPlan(planId);
+  if (!plan) throw new PlanError("Purchase plan not found", "PLAN_NOT_FOUND", 404);
+  requireSession(req, plan.sessionId);
+  return plan;
 }
 
 // ---------- Meta ----------
@@ -45,8 +56,15 @@ api.get("/config", (_req, res) => {
 
 // ---------- Sessions & chat ----------
 
-api.post("/sessions", (_req, res) => {
-  const s = store.createSession();
+api.post("/sessions", (req, res) => {
+  const user = currentUser(req);
+  const s = store.createSession(user?.id);
+  if (user?.country) {
+    // Country comes from the PayPal profile, so the agent only needs to ask for salary.
+    s.profile.country = user.country;
+    s.profile.catalogCountry = catalogMarket(user.country);
+    store.saveSession(s);
+  }
   log("session_created", { sessionId: s.id });
   res.status(201).json(sessionView(s, []));
 });
@@ -54,7 +72,7 @@ api.post("/sessions", (_req, res) => {
 api.get(
   "/sessions/:id",
   wrap((req, res) => {
-    const s = requireSession(String(req.params.id));
+    const s = requireSession(req, String(req.params.id));
     res.json(sessionView(s, store.plansForSession(s.id)));
   }),
 );
@@ -65,7 +83,7 @@ const ChatBody = z.object({ message: z.string().trim().min(1).max(4000) });
 api.post(
   "/sessions/:id/chat",
   wrap(async (req, res) => {
-    const s = requireSession(String(req.params.id));
+    const s = requireSession(req, String(req.params.id));
     const body = ChatBody.parse(req.body);
     if (!integrations.ai()) {
       const key = aiProvider() === "gemini" ? "GEMINI_API_KEY" : "ANTHROPIC_API_KEY";
@@ -105,7 +123,7 @@ const ToggleBody = z.object({ componentId: z.string(), included: z.boolean() });
 api.post(
   "/sessions/:id/options/:optionId/components",
   wrap((req, res) => {
-    const s = requireSession(String(req.params.id));
+    const s = requireSession(req, String(req.params.id));
     const { componentId, included } = ToggleBody.parse(req.body);
     const option = s.options.find((o) => o.id === req.params.optionId);
     if (!option) throw new PlanError("Option not found", "OPTION_NOT_FOUND", 404);
@@ -131,6 +149,7 @@ api.post(
   "/plans",
   wrap((req, res) => {
     const body = CreatePlanBody.parse(req.body);
+    requireSession(req, body.sessionId);
     res.status(201).json(planView(transactions.createPlan(body.sessionId, body.optionId, body.includeComponentIds)));
   }),
 );
@@ -138,15 +157,14 @@ api.post(
 api.get(
   "/plans/:id",
   wrap((req, res) => {
-    const plan = store.getPlan(String(req.params.id));
-    if (!plan) throw new PlanError("Purchase plan not found", "PLAN_NOT_FOUND", 404);
-    res.json(planView(plan));
+    res.json(planView(requirePlanAccess(req, String(req.params.id))));
   }),
 );
 
 api.post(
   "/plans/:id/lock",
   wrap(async (req, res) => {
+    requirePlanAccess(req, String(req.params.id));
     res.json(planView(await transactions.lock(String(req.params.id))));
   }),
 );
@@ -156,6 +174,7 @@ api.post(
   "/plans/:id/authorize",
   wrap(async (req, res) => {
     const body = AuthorizeBody.parse(req.body);
+    requirePlanAccess(req, String(req.params.id));
     res.json(planView(await transactions.authorize(String(req.params.id), body.lockHash, body.pin)));
   }),
 );
@@ -165,6 +184,7 @@ api.post(
   "/plans/:id/capture",
   wrap(async (req, res) => {
     const body = CaptureBody.parse(req.body);
+    requirePlanAccess(req, String(req.params.id));
     res.json(planView(await transactions.capture(String(req.params.id), body.orderId)));
   }),
 );
@@ -172,6 +192,7 @@ api.post(
 api.post(
   "/plans/:id/cancel",
   wrap((req, res) => {
+    requirePlanAccess(req, String(req.params.id));
     res.json(planView(transactions.cancel(String(req.params.id))));
   }),
 );

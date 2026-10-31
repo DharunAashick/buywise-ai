@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, input, output } from '@an
 import { AgGridAngular } from 'ag-grid-angular';
 import { colorSchemeDarkBlue, themeQuartz, type ColDef, type GetRowIdParams, type RowClassParams, type RowClickedEvent } from 'ag-grid-community';
 import type { SolutionOption } from '../core/models';
-import { IMPACT_LABEL, money } from '../core/format';
+import { IMPACT_LABEL, money, type Fx } from '../core/format';
 
 interface Row {
   id: string;
@@ -39,7 +39,6 @@ const theme = themeQuartz.withPart(colorSchemeDarkBlue).withParams({
   spacing: 7,
 });
 
-const moneyCell = (v: number) => `<span class="num">${money(v)}</span>`;
 
 @Component({
   selector: 'app-comparison-grid',
@@ -81,12 +80,22 @@ const moneyCell = (v: number) => `<span class="num">${money(v)}</span>`;
 export class ComparisonGrid {
   options = input.required<SolutionOption[]>();
   selectedId = input<string | undefined>();
+  /** Show amounts in the user's own currency when set. */
+  fx = input<Fx | null>(null);
+
+  private m(cents: number, whole = false) {
+    return money(cents, whole, this.fx());
+  }
+  private moneyCell(v: number) {
+    return `<span class="num">${this.m(v)}</span>`;
+  }
   select = output<string>();
 
   protected readonly theme = theme;
 
   protected rows = computed<Row[]>(() => {
     const opts = this.options();
+    this.fx(); // re-render cells when the display currency changes
     const best = Math.min(...opts.map((o) => o.cost.firstYearTotal));
     return opts.map((o) => ({
       id: o.id,
@@ -122,28 +131,28 @@ export class ComparisonGrid {
       minWidth: 200,
       cellRenderer: (p: { data: Row }) => `<div class="bw-name"><span>${escape(p.data.name)}</span><small>${escape(p.data.approach)} · ${p.data.items} items</small></div>`,
     },
-    { field: 'upfront', headerName: 'Upfront', width: 120, type: 'rightAligned', cellRenderer: (p: { value: number }) => moneyCell(p.value) },
-    { field: 'monthly', headerName: 'Monthly', width: 110, type: 'rightAligned', cellRenderer: (p: { value: number }) => moneyCell(p.value) },
+    { field: 'upfront', headerName: 'Upfront', width: 120, type: 'rightAligned', cellRenderer: (p: { value: number }) => this.moneyCell(p.value) },
+    { field: 'monthly', headerName: 'Monthly', width: 110, type: 'rightAligned', cellRenderer: (p: { value: number }) => this.moneyCell(p.value) },
     {
       field: 'firstYear',
       headerName: 'First year',
       width: 130,
       type: 'rightAligned',
-      cellRenderer: (p: { value: number }) => `<strong class="num">${money(p.value)}</strong>`,
+      cellRenderer: (p: { value: number }) => `<strong class="num">${this.m(p.value)}</strong>`,
     },
     {
       field: 'vsBest',
       headerName: 'vs lowest',
       width: 110,
       type: 'rightAligned',
-      cellRenderer: (p: { value: number }) => (p.value === 0 ? '<span class="bw-delta best">Lowest</span>' : `<span class="bw-delta num">+${money(p.value, true)}</span>`),
+      cellRenderer: (p: { value: number }) => (p.value === 0 ? '<span class="bw-delta best">Lowest</span>' : `<span class="bw-delta num">+${this.m(p.value, true)}</span>`),
     },
     {
       field: 'savings',
       headerName: 'Bundle',
       width: 105,
       type: 'rightAligned',
-      cellRenderer: (p: { value: number }) => (p.value > 0 ? `<span class="bw-save num">-${money(p.value, true)}</span>` : '<span style="color:#6d7896">-</span>'),
+      cellRenderer: (p: { value: number }) => (p.value > 0 ? `<span class="bw-save num">-${this.m(p.value, true)}</span>` : '<span style="color:#6d7896">-</span>'),
     },
     {
       field: 'impact',

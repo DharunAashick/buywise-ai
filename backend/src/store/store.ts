@@ -9,6 +9,8 @@ import type { PurchasePlan, SolutionOption, UserProfile } from "../domain/types.
 
 export interface Session {
   id: string;
+  /** PayPal-login user who owns this conversation; undefined for guests. */
+  userId?: string;
   /** Claude conversation history (append-only, includes thinking/tool blocks). */
   messages: Anthropic.Beta.BetaMessageParam[];
   /** Gemini conversation history (append-only, includes thought signatures and function calls). */
@@ -65,9 +67,9 @@ function persist() {
 load();
 
 export const store = {
-  createSession(): Session {
+  createSession(userId?: string): Session {
     const now = new Date().toISOString();
-    const s: Session = { id: randomUUID(), messages: [], profile: { preferences: [] }, options: [], createdAt: now, updatedAt: now };
+    const s: Session = { id: randomUUID(), userId, messages: [], profile: { preferences: [] }, options: [], createdAt: now, updatedAt: now };
     sessions.set(s.id, s);
     persist();
     return s;

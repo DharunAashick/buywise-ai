@@ -18,14 +18,14 @@
     </div>
     <div class="legend">
       @for (s of segments(); track s.key) {
-        <span><i [style.background]="s.color"></i>{{ s.key }} <b class="num">{{ s.value | money: true }}</b></span>
+        <span><i [style.background]="s.color"></i>{{ s.key }} <b class="num">{{ s.value | money: true : store.fx() }}</b></span>
       }
     </div>
 
     @if (o.bundle && o.bundle.savings > 0) {
       <div class="bundle">
-        <strong>Bundle detected:</strong> {{ o.bundle.bundleTitle }} costs <b class="num">{{ o.bundle.bundlePrice | money }}</b> vs
-        <b class="num">{{ o.bundle.separatePrice | money }}</b> separately - saves <b class="num save">{{ o.bundle.savings | money }}</b>.
+        <strong>Bundle detected:</strong> {{ o.bundle.bundleTitle }} costs <b class="num">{{ o.bundle.bundlePrice | money: false : store.fx() }}</b> vs
+        <b class="num">{{ o.bundle.separatePrice | money: false : store.fx() }}</b> separately - saves <b class="num save">{{ o.bundle.savings | money: false : store.fx() }}</b>.
       </div>
     }
 
@@ -41,9 +41,9 @@
             </div>
             <div class="p num">
               @if (c.recurringMonthly) {
-                {{ c.recurringMonthly | money }}<small>/mo</small>
+                {{ c.recurringMonthly | money: false : store.fx() }}<small>/mo</small>
               } @else {
-                {{ c.unitPrice * c.quantity | money }}
+                {{ c.unitPrice * c.quantity | money: false : store.fx() }}
               }
               @if (c.retailer) {
                 <small class="ret">{{ c.retailer }}</small>

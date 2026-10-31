@@ -15,7 +15,7 @@ type Recognition = {
   stop(): void;
 };
 
-const SUGGESTIONS = ['I want a PS5', 'I want to get into gaming', 'I need something to game on while I travel'];
+const SUGGESTIONS = ['I want to buy a new phone', 'I need a laptop for college', 'I want a PS5', 'I need noise-cancelling headphones'];
 
 @Component({
   selector: 'app-chat-panel',

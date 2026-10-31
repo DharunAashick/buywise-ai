@@ -2,12 +2,12 @@
   <div class="scroller" #scroller>
     @if ((store.session()?.transcript ?? []).length === 0 && !store.pendingUserText()) {
       <div class="intro">
-        <div class="eyebrow">Purchase intelligence agent</div>
-        <h1>Tell me what you want to <em>achieve</em>.</h1>
+        <div class="eyebrow">Your AI shopping agent</div>
+        <h1>Tell me what you want to <em>buy</em>.</h1>
         <p>
-          Just name what you want. I'll ask where you live and your monthly salary, look past the product you named, compare every
-          realistic way to get there, and work out what the first year really costs. When you're ready, you approve the exact purchase
-          and PayPal handles the payment.
+          Just name it. I'll ask where you live and your monthly salary, compare the best options - including ones you may not have
+          considered - and show what each really costs over the first year. When you're ready, you approve the exact purchase and PayPal
+          handles the payment.
         </p>
         <div class="suggestions">
           @for (s of suggestions; track s) {

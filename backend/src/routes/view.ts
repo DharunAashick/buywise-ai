@@ -17,7 +17,7 @@ export function transcript(messages: Anthropic.Beta.BetaMessageParam[]): Transcr
       typeof m.content === "string"
         ? m.content
         : m.content
-            .filter((b): b is Anthropic.Beta.BetaTextBlockParam => b.type === "text")
+            .filter((b): b is Anthropic.Beta.BetaTextBlockParam => b.type === "text" && !b.text.startsWith("[context]"))
             .map((b) => b.text)
             .join("");
     if (!text.trim()) continue;

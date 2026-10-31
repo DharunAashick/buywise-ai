@@ -1,7 +1,7 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { ApiError, ApiService } from './api.service';
 import type { AppConfig, PurchasePlan, SessionView, SolutionOption } from './models';
-import { modelLabel } from './format';
+import { modelLabel, type Fx } from './format';
 
 export interface ActivityItem {
   id: string;
@@ -46,6 +46,12 @@ export class BuyWiseStore {
   readonly plan = signal<PurchasePlan | null>(null);
   /** Fires with the final assistant text of each turn (used for voice read-out). */
   readonly lastReply = signal<{ text: string; at: number } | null>(null);
+
+  /** User's own currency when they gave their salary in one (amounts display in it; PayPal charges USD). */
+  readonly fx = computed<Fx | null>(() => {
+    const s = this.session()?.profile.statedIncome;
+    return s && s.currency !== 'USD' ? { currency: s.currency, usdRate: s.usdRate } : null;
+  });
 
   /** Human-readable name of the model answering, e.g. "Gemini 3.5 Flash-Lite". */
   readonly modelName = computed(() => modelLabel(this.config()?.model));
