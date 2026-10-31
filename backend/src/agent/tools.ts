@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod/v4";
 import type Anthropic from "@anthropic-ai/sdk";
 import { formatMoney, toCents } from "../lib/money.js";
+import { toUsd } from "../lib/fx.js";
 import { getProduct, searchProducts } from "../catalog/index.js";
 import { calculateCost, checkBundle } from "../engine/cost.js";
 import { assessAffordability } from "../engine/affordability.js";
@@ -16,11 +17,32 @@ import { getAgentToolkit, runToolkit } from "../paypal/toolkit.js";
 const ProfileInput = z.object({
   goal: z.string().optional().describe("What the user wants to achieve, in their words, e.g. 'get into gaming'"),
   experience: z.string().optional().describe("beginner / casual / experienced, if known"),
-  monthly_income: z.number().positive().optional().describe("Monthly income the user shared, in USD"),
-  monthly_budget: z.number().positive().optional().describe("How much per month the user said they can spend or save, in USD"),
-  max_upfront: z.number().positive().optional().describe("Maximum upfront spend the user stated, in USD"),
+  country: z.string().optional().describe("Country the user lives in, e.g. 'India', 'United States'"),
+  currency: z
+    .string()
+    .length(3)
+    .optional()
+    .describe("ISO 4217 code of the amounts below exactly as the user stated them, e.g. INR for '₹60,000', USD for '$2,000'. Do not convert amounts yourself."),
+  monthly_income: z.number().positive().optional().describe("Monthly income exactly as the user stated it, in `currency`"),
+  monthly_budget: z.number().positive().optional().describe("Monthly spend/save amount the user stated, in `currency`"),
+  max_upfront: z.number().positive().optional().describe("Maximum upfront spend the user stated, in `currency`"),
+  income_declined: z.boolean().optional().describe("True if the user prefers not to share income"),
   preferences: z.array(z.string()).optional().describe("Stated preferences, e.g. 'plays with friends online', 'wants portability'"),
 });
+
+// Channel3 markets (docs: config.country). Other countries fall back to the US catalog.
+const CHANNEL3_MARKETS: Record<string, string> = {
+  "united states": "US", usa: "US", us: "US", america: "US",
+  "united kingdom": "GB", uk: "GB", gb: "GB", england: "GB", britain: "GB",
+  canada: "CA", ca: "CA", australia: "AU", au: "AU", ireland: "IE", ie: "IE",
+  germany: "DE", de: "DE", austria: "AT", france: "FR", belgium: "BE", italy: "IT", spain: "ES",
+  netherlands: "NL", sweden: "SE", finland: "FI", portugal: "PT", "czech republic": "CZ", czechia: "CZ",
+  greece: "GR", romania: "RO",
+};
+
+function catalogMarket(country: string): string {
+  return CHANNEL3_MARKETS[country.trim().toLowerCase()] ?? "US";
+}
 
 const SearchInput = z.object({
   query: z.string().min(2).describe("Natural-language product query, e.g. 'Xbox Series S console' or 'PS5 controller'"),
@@ -204,17 +226,47 @@ const TOOLS: Record<string, ToolDef> = {
   update_user_profile: {
     schema: ProfileInput,
     description:
-      "Save what you learned about the user's goal, experience, and any income/budget figures they chose to share. Call whenever new information appears. Amounts in USD.",
+      "Save what you learned: goal, experience, country, and any income/budget figures. Give amounts exactly as the user said them with their currency code; the backend converts to USD. Call whenever new information appears.",
     run: async (session, input: z.infer<typeof ProfileInput>) => {
       const p = session.profile;
       if (input.goal) p.goal = input.goal;
       if (input.experience) p.experience = input.experience;
-      if (input.monthly_income) p.monthlyIncome = toCents(input.monthly_income);
-      if (input.monthly_budget) p.monthlyBudget = toCents(input.monthly_budget);
-      if (input.max_upfront) p.maxUpfront = toCents(input.max_upfront);
+      if (input.country) {
+        p.country = input.country;
+        p.catalogCountry = catalogMarket(input.country);
+      }
+      if (input.income_declined) p.intakeAsked = true;
+
+      const currency = (input.currency ?? "USD").toUpperCase();
+      const amounts = [input.monthly_income, input.monthly_budget, input.max_upfront];
+      let conversion: Awaited<ReturnType<typeof toUsd>> | undefined;
+      if (amounts.some((a) => a !== undefined)) conversion = await toUsd(1, currency);
+      const usd = (amount: number) => toCents(amount * conversion!.rate);
+      if (input.monthly_income) {
+        p.monthlyIncome = usd(input.monthly_income);
+        p.statedIncome = { amount: input.monthly_income, currency, usdRate: conversion!.rate, rateSource: conversion!.source };
+      }
+      if (input.monthly_budget) p.monthlyBudget = usd(input.monthly_budget);
+      if (input.max_upfront) p.maxUpfront = usd(input.max_upfront);
       if (input.preferences) p.preferences = [...new Set([...p.preferences, ...input.preferences])];
+      if (p.country && (p.monthlyIncome || input.income_declined)) p.intakeAsked = true;
       if (session.options.length) rescore(session);
-      return { saved: true, profile: { ...p, monthlyIncome: p.monthlyIncome && formatMoney(p.monthlyIncome), monthlyBudget: p.monthlyBudget && formatMoney(p.monthlyBudget), maxUpfront: p.maxUpfront && formatMoney(p.maxUpfront) } };
+
+      const unsupportedMarket = p.country && p.catalogCountry === "US" && !/united states|usa|^us$|america/i.test(p.country);
+      return {
+        saved: true,
+        country: p.country,
+        product_market: p.catalogCountry,
+        note: unsupportedMarket
+          ? `Product search isn't available for ${p.country}; using US retailer prices in USD. Tell the user this once.`
+          : undefined,
+        monthly_income_usd: p.monthlyIncome !== undefined ? formatMoney(p.monthlyIncome) : undefined,
+        stated_income: p.statedIncome ? `${p.statedIncome.amount} ${p.statedIncome.currency}` : undefined,
+        fx_rate: conversion && currency !== "USD" ? `1 ${currency} = ${conversion.rate} USD (${conversion.source})` : undefined,
+        monthly_budget_usd: p.monthlyBudget !== undefined ? formatMoney(p.monthlyBudget) : undefined,
+        max_upfront_usd: p.maxUpfront !== undefined ? formatMoney(p.maxUpfront) : undefined,
+        goal: p.goal,
+      };
     },
   },
 
@@ -222,8 +274,13 @@ const TOOLS: Record<string, ToolDef> = {
     schema: SearchInput,
     description:
       "Search the product catalog (Channel3: products and offers across retailers). Returns product ids, best in-stock price and retailer. Subscriptions return a monthly price. Search each approach and each needed component separately.",
-    run: async (_session, input: z.infer<typeof SearchInput>) => {
-      const results = await searchProducts(input.query, { maxPrice: input.max_price, minPrice: input.min_price, limit: input.limit ?? 6 });
+    run: async (session, input: z.infer<typeof SearchInput>) => {
+      const results = await searchProducts(input.query, {
+        maxPrice: input.max_price,
+        minPrice: input.min_price,
+        limit: input.limit ?? 6,
+        country: session.profile.catalogCountry,
+      });
       return { query: input.query, count: results.length, products: results.map(productSummary) };
     },
   },

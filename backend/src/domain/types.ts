@@ -112,6 +112,14 @@ export interface SolutionOption {
 export interface UserProfile {
   goal?: string;
   experience?: string;
+  /** Country the user said they live in, as given (e.g. "India"). */
+  country?: string;
+  /** Channel3 market used for product search (falls back to US when the country isn't supported). */
+  catalogCountry?: string;
+  /** Income exactly as the user stated it, before conversion to USD. */
+  statedIncome?: { amount: number; currency: string; usdRate: number; rateSource: string };
+  /** True once the user has been asked about country/income (so we don't ask twice). */
+  intakeAsked?: boolean;
   monthlyIncome?: Cents;
   monthlyBudget?: Cents;
   maxUpfront?: Cents;

@@ -15,11 +15,7 @@ type Recognition = {
   stop(): void;
 };
 
-const SUGGESTIONS = [
-  'I want to get into gaming. I earn $2,000 a month.',
-  'I want a PS5 so I can play online with friends. My budget is about $600.',
-  'I travel a lot and want to game on the go. What should I buy?',
-];
+const SUGGESTIONS = ['I want a PS5', 'I want to get into gaming', 'I need something to game on while I travel'];
 
 @Component({
   selector: 'app-chat-panel',

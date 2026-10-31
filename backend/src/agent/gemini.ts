@@ -151,6 +151,7 @@ export function geminiErrorMessage(err: unknown): string | undefined {
     return `The free daily Gemini quota for ${config.gemini.model} is used up. It resets daily - or set GEMINI_MODEL to another model, or enable billing in Google AI Studio.`;
   }
   if (err.status === 429) return "The free Gemini quota is busy right now - please wait a minute and try again.";
+  if (err.status === 402) return "The Gemini project's prepaid credit is used up. Top up in Google AI Studio (ai.studio/projects → Billing) or use a key from a project without billing.";
   if (err.status === 404) return `Gemini model "${config.gemini.model}" isn't available to this key. Set GEMINI_MODEL to a current model.`;
   if (err.status === 400 || err.status === 403) return `Gemini rejected the request (${err.status}). Check GEMINI_API_KEY and GEMINI_MODEL.`;
   return `The AI service returned an error (${err.status}).`;

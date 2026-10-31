@@ -72,6 +72,9 @@ export interface SolutionOption {
 export interface UserProfile {
   goal?: string;
   experience?: string;
+  country?: string;
+  catalogCountry?: string;
+  statedIncome?: { amount: number; currency: string; usdRate: number; rateSource: string };
   monthlyIncome?: number;
   monthlyBudget?: number;
   maxUpfront?: number;

@@ -21,6 +21,8 @@ export interface SearchFilters {
   minPrice?: number;
   maxPrice?: number;
   limit?: number;
+  /** Channel3 market (ISO country code). Defaults to CHANNEL3_COUNTRY. */
+  country?: string;
 }
 
 export class Channel3Error extends Error {
@@ -81,7 +83,8 @@ export async function channel3Search(query: string, filters: SearchFilters = {})
         ? { price: { min_price: filters.minPrice ?? null, max_price: filters.maxPrice ?? null } }
         : {}),
     },
-    config: { country: config.channel3.country, currency: config.currency },
+    // Prices stay in USD (PayPal settlement currency) regardless of market.
+    config: { country: filters.country ?? config.channel3.country, currency: config.currency },
   };
   const started = Date.now();
   const data = await request<{ products: C3Product[] }>("/v1/search", { method: "POST", body: JSON.stringify(body) });

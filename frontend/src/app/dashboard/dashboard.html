@@ -19,6 +19,9 @@
       <section class="hero card">
         <div class="hero-main">
           <div class="eyebrow">Recommended for “{{ profile()?.goal || 'your goal' }}”</div>
+          @if (profileLine()) {
+            <div class="who">{{ profileLine() }}</div>
+          }
           <h2>{{ r.name }}</h2>
           <p>{{ r.summary }}</p>
           <div class="approaches">
@@ -52,7 +55,7 @@
           <div class="v small"><span class="chip {{ r.affordability.impact }}">{{ impactLabel[r.affordability.impact] }}</span></div>
           <div class="s">
             @if (r.affordability.upfrontToIncomeRatio !== undefined) {
-              {{ r.affordability.upfrontToIncomeRatio.toFixed(2) }}× monthly income shared
+              {{ r.affordability.upfrontToIncomeRatio.toFixed(2) }}× your monthly salary
             } @else {
               Share income or budget to assess
             }

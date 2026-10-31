@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { BuyWiseStore } from '../core/buywise.store';
-import { IMPACT_LABEL, MoneyPipe } from '../core/format';
+import { IMPACT_LABEL, money, MoneyPipe } from '../core/format';
 import { ComparisonGrid } from './comparison-grid';
 import { OptionDetail } from './option-detail';
 
@@ -26,6 +26,28 @@ export class Dashboard {
     const spread = Math.max(...opts.map((o) => o.cost.firstYearTotal)) - r.cost.firstYearTotal;
     // Only worth a headline tile when the gap is meaningful (at least 5% of the first-year cost).
     return spread >= r.cost.firstYearTotal * 0.05 ? spread : 0;
+  });
+
+  /** "India · ₹60,000/mo ≈ $708" - the user's own figure first, USD equivalent after. */
+  protected profileLine = computed(() => {
+    const p = this.profile();
+    if (!p) return '';
+    const parts: string[] = [];
+    if (p.country) parts.push(p.country);
+    if (p.statedIncome) {
+      let own: string;
+      try {
+        own = new Intl.NumberFormat('en', { style: 'currency', currency: p.statedIncome.currency, maximumFractionDigits: 0 }).format(p.statedIncome.amount);
+      } catch {
+        own = `${p.statedIncome.amount} ${p.statedIncome.currency}`;
+      }
+      const usd = p.monthlyIncome !== undefined ? money(p.monthlyIncome, true) : '';
+      parts.push(p.statedIncome.currency === 'USD' ? `${own}/mo` : `${own}/mo ≈ ${usd}`);
+    }
+    if (p.catalogCountry && p.country && p.catalogCountry === 'US' && !/united states|usa|^us$|america/i.test(p.country)) {
+      parts.push('prices from US retailers');
+    }
+    return parts.join(' · ');
   });
 
   protected approaches = computed(() => [...new Set(this.store.options().map((o) => o.approach))]);
