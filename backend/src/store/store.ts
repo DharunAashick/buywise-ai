@@ -16,6 +16,8 @@ export interface Session {
   profile: UserProfile;
   options: SolutionOption[];
   recommendedOptionId?: string;
+  /** Set once rank_options has asked the agent to make options like-for-like. */
+  rankGapWarned?: boolean;
   createdAt: string;
   updatedAt: string;
 }

@@ -65,7 +65,7 @@ const OptionInput = z.object({
   summary: z.string().describe("One sentence describing the option"),
   goal_fit: z.number().min(0).max(10).describe("How well this option serves the stated goal and preferences, 0-10. Justify it in pros/cons."),
   pros: z.array(z.string()).min(1).max(5),
-  cons: z.array(z.string()).max(5),
+  cons: z.array(z.string()).max(5).default([]),
   components: z.array(ComponentInput).min(1).max(12),
   bundle: z
     .object({
@@ -214,6 +214,28 @@ async function buildOption(session: Session, input: z.infer<typeof OptionInput>)
   };
 }
 
+const KIND_LABEL: Record<string, string> = { SOFTWARE: "games/software", SUBSCRIPTION: "a subscription", ACCESSORY: "accessories" };
+
+/**
+ * Like-for-like check: if some options include games/subscriptions and another has none, its cost
+ * looks artificially low. Flags each gap once, unless the option's cons already explain it.
+ */
+export function comparabilityGaps(options: SolutionOption[]): string[] {
+  if (options.length < 2) return [];
+  const has = (o: SolutionOption, kind: string) => o.components.some((c) => c.included && c.kind === kind);
+  const gaps: string[] = [];
+  for (const kind of ["SOFTWARE", "SUBSCRIPTION"]) {
+    const withKind = options.filter((o) => has(o, kind)).length;
+    if (withKind === 0 || withKind === options.length) continue;
+    for (const o of options) {
+      if (has(o, kind)) continue;
+      const explained = o.cons.some((c) => /no (subscription|game)|subscription.*(not|n't) (needed|required)|free online/i.test(c));
+      if (!explained) gaps.push(`${o.name} (${o.id}) has no ${KIND_LABEL[kind]}, unlike the other options.`);
+    }
+  }
+  return gaps;
+}
+
 function rescore(session: Session) {
   session.options = session.options.map((o) => ({ ...o, affordability: assessAffordability(o.cost, session.profile) }));
   session.options = scoreOptions(session.options, session.profile);
@@ -292,6 +314,7 @@ const TOOLS: Record<string, ToolDef> = {
     run: async (session, input: z.infer<typeof OptionInput>) => {
       const option = await buildOption(session, input);
       session.options.push(option);
+      session.rankGapWarned = false; // options changed: check comparability again
       rescore(session);
       return optionSummary(session.options.find((o) => o.id === option.id)!);
     },
@@ -300,12 +323,24 @@ const TOOLS: Record<string, ToolDef> = {
   rank_options: {
     schema: RankInput,
     description:
-      "Score and rank all built options with the deterministic scoring engine (cost, goal fit, budget fit, bundle value, availability). Returns the ranking with score breakdowns.",
+      "Score and rank all built options with the deterministic scoring engine (cost, goal fit, budget fit, bundle value, availability). Returns the ranking with score breakdowns, or asks you to fix options that aren't comparable first.",
     run: async (session) => {
+      const gaps = comparabilityGaps(session.options);
+      // Ask for a fix once per set of options; if the agent ranks again anyway, rank with warnings.
+      if (gaps.length && !session.rankGapWarned) {
+        session.rankGapWarned = true;
+        return {
+          ranked: false,
+          fix_first: gaps,
+          instruction:
+            "Options must be like-for-like before ranking. Search for and add the missing kinds of components (e.g. a first game and/or the platform's subscription) by rebuilding those options with build_solution_option and remove_option for the old ones, then call rank_options again. If a platform genuinely needs none, say so in its cons.",
+        };
+      }
       rescore(session);
       return {
         weights: "cost 30%, goal fit 30%, budget fit 20%, bundle value 10%, availability 10%",
         ranking: session.options.map(optionSummary),
+        warnings: gaps.length ? gaps.map((g) => `${g} Mention this when comparing costs.`) : undefined,
       };
     },
   },
