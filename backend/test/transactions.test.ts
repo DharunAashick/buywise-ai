@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-process.env.DATA_FILE = `data/test-${process.pid}.json`;
+// Own folder, so test users/sessions never mix with real ones (users.json sits next to the data file).
+process.env.DATA_FILE = `data/test-${process.pid}/store.json`;
 process.env.DEMO_PIN = "2468";
 process.env.CHANNEL3_API_KEY = "";
 // PayPal calls are mocked below; dummy credentials just satisfy the "configured" check.
