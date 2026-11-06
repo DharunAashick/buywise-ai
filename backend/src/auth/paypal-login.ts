@@ -16,7 +16,7 @@ const SCOPES = "openid profile email address";
  * Angular proxy rewrites Host, so fall back to the configured dev URL.
  */
 export function publicOrigin(req: Request): string {
-  if (process.env.PUBLIC_URL) return config.publicUrl;
+  if (process.env.PUBLIC_URL || process.env.FRONTEND_URL) return config.publicUrl;
   if (process.env.NODE_ENV === "production" && req.get("host")) return `${req.protocol}://${req.get("host")}`;
   return config.publicUrl;
 }
