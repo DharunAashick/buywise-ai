@@ -97,6 +97,37 @@ const SEEDS: Seed[] = [
   { id: "demo-ipad-11", title: "Apple iPad (A16, 11in, 128GB, Wi-Fi)", brand: "Apple", category: "Tablets", tags: ["tablet", "ipad", "apple", "ios", "student", "college", "notes"], price: 329.0, compareAt: 349.0, retailer: "amazon.com", features: ["11in Liquid Retina", "A16 chip", "All-day battery"] },
   { id: "demo-galaxy-tab-s10-fe", title: "Samsung Galaxy Tab S10 FE (128GB, S Pen)", brand: "Samsung", category: "Tablets", tags: ["tablet", "android", "samsung", "galaxy", "student", "college", "notes", "s pen"], price: 449.99, compareAt: 499.99, retailer: "samsung.com", features: ["10.9in display", "S Pen included", "IP68"] },
   { id: "demo-apple-pencil", title: "Apple Pencil (USB-C)", brand: "Apple", category: "Tablet Accessories", tags: ["pencil", "stylus", "ipad", "apple", "accessory", "notes"], price: 69.0, compareAt: 79.0, retailer: "amazon.com", features: ["Pixel-perfect precision", "Magnetic attach"] },
+
+  // Refrigerators
+  { id: "demo-fridge-samsung-bespoke", title: "Samsung 30 cu. ft. 3-Door French Door Refrigerator", brand: "Samsung", category: "Refrigerators", tags: ["refrigerator", "fridge", "french door", "kitchen", "appliance", "large", "family"], price: 1899.0, compareAt: 2399.0, retailer: "bestbuy.com", features: ["30 cu. ft.", "Dual ice maker", "Energy Star"] },
+  { id: "demo-fridge-lg-top", title: "LG 20 cu. ft. Top-Freezer Refrigerator", brand: "LG", category: "Refrigerators", tags: ["refrigerator", "fridge", "top freezer", "kitchen", "appliance", "budget", "medium"], price: 849.0, compareAt: 999.0, retailer: "homedepot.com", features: ["20 cu. ft.", "Smart Inverter compressor", "Energy Star"] },
+  { id: "demo-fridge-whirlpool-side", title: "Whirlpool 25 cu. ft. Side-by-Side Refrigerator", brand: "Whirlpool", category: "Refrigerators", tags: ["refrigerator", "fridge", "side by side", "kitchen", "appliance", "large"], price: 1299.0, compareAt: 1549.0, retailer: "lowes.com", features: ["25 cu. ft.", "Water and ice dispenser"] },
+  { id: "demo-fridge-mini", title: "Frigidaire 7.5 cu. ft. Compact Refrigerator", brand: "Frigidaire", category: "Refrigerators", tags: ["refrigerator", "fridge", "compact", "mini", "small", "single", "dorm", "budget", "appliance"], price: 329.0, retailer: "walmart.com", features: ["7.5 cu. ft.", "Top freezer", "Ideal for 1-2 people"] },
+  { id: "demo-fridge-refurb", title: "GE 18 cu. ft. Top-Freezer Refrigerator - Certified Refurbished", brand: "GE", category: "Refrigerators", tags: ["refrigerator", "fridge", "refurbished", "top freezer", "budget", "appliance"], price: 599.0, compareAt: 799.0, retailer: "bestbuy.com", features: ["Certified refurbished", "1-year warranty"] },
+  { id: "demo-voltage-stabilizer", title: "Refrigerator Voltage Protector / Surge Guard", brand: "Tripp Lite", category: "Appliance Accessories", tags: ["stabilizer", "surge", "protector", "refrigerator", "fridge", "appliance", "accessory"], price: 34.99, retailer: "amazon.com", features: ["Surge and brown-out protection", "Delay restart"] },
+  { id: "demo-sub-appliance-protection", title: "Appliance Protection Plan (monthly)", brand: "Asurion", category: "Protection Plans", tags: ["subscription", "protection", "warranty", "appliance", "refrigerator", "fridge", "washing machine", "tv"], price: 0, retailer: "asurion.com", monthly: 7.99, features: ["Covers breakdowns", "In-home repair"] },
+
+  // Washing machines
+  { id: "demo-washer-lg-front", title: "LG 4.5 cu. ft. Front Load Washer", brand: "LG", category: "Washing Machines", tags: ["washing machine", "washer", "front load", "laundry", "appliance"], price: 799.0, compareAt: 999.0, retailer: "homedepot.com", features: ["4.5 cu. ft.", "Steam cycle", "Energy Star"] },
+  { id: "demo-washer-whirlpool-top", title: "Whirlpool 4.3 cu. ft. Top Load Washer", brand: "Whirlpool", category: "Washing Machines", tags: ["washing machine", "washer", "top load", "laundry", "appliance", "budget"], price: 599.0, compareAt: 699.0, retailer: "lowes.com", features: ["4.3 cu. ft.", "Deep water wash"] },
+  { id: "demo-washer-compact", title: "GE 2.4 cu. ft. Compact Front Load Washer", brand: "GE", category: "Washing Machines", tags: ["washing machine", "washer", "compact", "apartment", "laundry", "appliance"], price: 999.0, retailer: "bestbuy.com", features: ["Stackable", "Fits small spaces"] },
+
+  // Air conditioners
+  { id: "demo-ac-window", title: "LG 10,000 BTU Window Air Conditioner", brand: "LG", category: "Air Conditioners", tags: ["air conditioner", "ac", "window", "cooling", "appliance", "room"], price: 379.0, compareAt: 449.0, retailer: "homedepot.com", features: ["Cools 450 sq ft", "Wi-Fi control", "Energy Star"] },
+  { id: "demo-ac-portable", title: "Midea Duo 12,000 BTU Portable Air Conditioner", brand: "Midea", category: "Air Conditioners", tags: ["air conditioner", "ac", "portable", "cooling", "appliance", "room"], price: 449.0, retailer: "amazon.com", features: ["Inverter", "Quiet operation"] },
+  { id: "demo-ac-split", title: "Pioneer 12,000 BTU Ductless Mini-Split Inverter AC", brand: "Pioneer", category: "Air Conditioners", tags: ["air conditioner", "ac", "split", "inverter", "cooling", "heating", "appliance"], price: 899.0, retailer: "homedepot.com", features: ["Inverter heat pump", "Very efficient", "Needs installation"] },
+  { id: "demo-ac-install", title: "Professional Mini-Split Installation", brand: "HomeAdvisor", category: "Installation Services", tags: ["installation", "service", "ac", "split", "air conditioner"], price: 450.0, retailer: "homeadvisor.com", features: ["Licensed technician", "Includes line set"] },
+
+  // TVs
+  { id: "demo-tv-tcl-55", title: "TCL 55in 4K QLED Google TV", brand: "TCL", category: "Televisions", tags: ["tv", "television", "4k", "qled", "smart tv", "55 inch", "budget"], price: 349.99, compareAt: 449.99, retailer: "bestbuy.com", features: ["55in 4K QLED", "Google TV", "Dolby Vision"] },
+  { id: "demo-tv-samsung-65", title: "Samsung 65in Crystal UHD 4K Smart TV", brand: "Samsung", category: "Televisions", tags: ["tv", "television", "4k", "smart tv", "65 inch", "large"], price: 479.99, compareAt: 579.99, retailer: "walmart.com", features: ["65in 4K", "Tizen smart TV"] },
+  { id: "demo-tv-lg-oled-55", title: "LG 55in OLED evo C-Series 4K Smart TV", brand: "LG", category: "Televisions", tags: ["tv", "television", "4k", "oled", "smart tv", "55 inch", "premium", "gaming"], price: 1199.99, compareAt: 1499.99, retailer: "bestbuy.com", features: ["OLED", "120Hz", "Best for movies and gaming"] },
+  { id: "demo-tv-wall-mount", title: "Full-Motion TV Wall Mount (42-75in)", brand: "Mounting Dream", category: "TV Accessories", tags: ["wall mount", "tv", "television", "accessory", "mount"], price: 39.99, retailer: "amazon.com", features: ["Swivel and tilt", "Fits 42-75in"] },
+  { id: "demo-sub-netflix", title: "Netflix Standard (monthly)", brand: "Netflix", category: "Streaming Subscriptions", tags: ["subscription", "streaming", "netflix", "tv", "television", "movies"], price: 0, retailer: "netflix.com", monthly: 17.99, features: ["HD streaming", "2 screens"] },
+
+  // Microwaves
+  { id: "demo-microwave-toshiba", title: "Toshiba 1.2 cu. ft. Countertop Microwave", brand: "Toshiba", category: "Microwaves", tags: ["microwave", "kitchen", "appliance", "countertop", "budget"], price: 119.99, retailer: "amazon.com", features: ["1100W", "Sensor cooking"] },
+  { id: "demo-microwave-convection", title: "Panasonic 1.2 cu. ft. Convection Microwave Oven", brand: "Panasonic", category: "Microwaves", tags: ["microwave", "convection", "oven", "kitchen", "appliance", "air fry"], price: 299.99, retailer: "bestbuy.com", features: ["Convection + air fry", "Inverter"] },
 ];
 
 export const DEMO_PRODUCTS: Product[] = SEEDS.map((s) => {
@@ -125,14 +156,25 @@ export const DEMO_PRODUCTS: Product[] = SEEDS.map((s) => {
 const TAGS = new Map(SEEDS.map((s) => [s.id, [...s.tags, s.brand.toLowerCase(), s.category.toLowerCase()]]));
 
 export function demoSearch(query: string, opts: { maxPrice?: number; minPrice?: number; limit?: number } = {}): Product[] {
-  const terms = query.toLowerCase().split(/[^a-z0-9]+/).filter((t) => t.length > 1);
+  const phrase = query.toLowerCase().trim();
+  const terms = phrase.split(/[^a-z0-9]+/).filter((t) => t.length > 1);
+  const wantsAddOn = /subscription|plan|warranty|protection|service|monthly/.test(phrase);
   const scored = DEMO_PRODUCTS.map((p) => {
-    const hay = `${p.title.toLowerCase()} ${(TAGS.get(p.id) ?? []).join(" ")}`;
-    const score = terms.reduce((acc, t) => acc + (hay.includes(t) ? (p.title.toLowerCase().includes(t) ? 2 : 1) : 0), 0);
-    return { p, score };
+    const title = p.title.toLowerCase();
+    const tags = TAGS.get(p.id) ?? [];
+    const hay = `${title} ${tags.join(" ")}`;
+    const matched = terms.filter((t) => hay.includes(t));
+    let score = matched.reduce((acc, t) => acc + (title.includes(t) ? 2 : 1), 0);
+    // Whole phrase as a tag or in the title ("washing machine", "air conditioner") is a strong signal.
+    if (terms.length > 1 && (tags.includes(phrase) || title.includes(phrase))) score += 5;
+    // Add-ons (plans, subscriptions) shouldn't outrank the product itself unless asked for.
+    if (p.recurringMonthly && !wantsAddOn) score -= 1.5;
+    // Multi-word queries need most of their words to match ("air" alone must not pull in "MacBook Air").
+    const enough = matched.length >= Math.ceil(terms.length * 0.6);
+    return { p, score: enough ? score : 0 };
   })
     .filter(({ p, score }) => {
-      if (score === 0) return false;
+      if (score <= 0) return false;
       const price = (p.bestOffer?.price ?? 0) / 100;
       if (opts.maxPrice !== undefined && price > opts.maxPrice && !p.recurringMonthly) return false;
       if (opts.minPrice !== undefined && price < opts.minPrice) return false;
