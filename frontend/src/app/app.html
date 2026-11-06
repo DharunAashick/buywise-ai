@@ -33,8 +33,8 @@
           <span class="who">{{ u.name }}</span>
           <button class="link" (click)="store.signOut()">Log out</button>
         </span>
-      } @else if (store.guest()) {
-        <button class="btn small signin" (click)="store.signInWithPayPal()" [disabled]="!store.paypalLoginAvailable()">Sign in with PayPal</button>
+      } @else if (store.guest() && store.paypalLoginAvailable()) {
+        <button class="btn small signin" (click)="store.signInWithPayPal()">Sign in with PayPal</button>
       }
     </div>
   }

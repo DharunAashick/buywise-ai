@@ -120,6 +120,7 @@ export class BuyWiseStore {
       history.replaceState(null, '', location.pathname);
       if (login === 'failed') this.notice.set('PayPal sign-in did not complete. Please try again, or continue as a guest.');
       if (login === 'cancelled') this.notice.set('PayPal sign-in was cancelled.');
+      if (login === 'unavailable') this.notice.set('PayPal sign-in is not enabled on this demo - press Get started to continue.');
     }
 
     try {

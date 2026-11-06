@@ -13,28 +13,38 @@ import { BuyWiseStore } from '../core/buywise.store';
           against your salary - and once you approve, PayPal handles the payment.
         </p>
 
-        <ul class="perks">
-          <li><span>1</span>Sign in with PayPal - no new password to create</li>
-          <li><span>2</span>We use your PayPal name and country, so you only tell us your salary</li>
-          <li><span>3</span>You set a private PIN that approves every purchase - the AI never sees it</li>
-        </ul>
+        @if (store.paypalLoginAvailable()) {
+          <ul class="perks">
+            <li><span>1</span>Sign in with PayPal - no new password to create</li>
+            <li><span>2</span>We use your PayPal name and country, so you only tell us your salary</li>
+            <li><span>3</span>You set a private PIN that approves every purchase - the AI never sees it</li>
+          </ul>
+        } @else {
+          <ul class="perks">
+            <li><span>1</span>Say what you want to buy - the AI asks your country and salary</li>
+            <li><span>2</span>Compare options, true first-year cost and salary fit, in your currency</li>
+            <li><span>3</span>Lock the exact purchase, approve with a PIN the AI never sees, pay with PayPal</li>
+          </ul>
+        }
 
         @if (store.notice()) {
           <div class="notice">{{ store.notice() }}</div>
         }
 
-        <button class="paypal" (click)="store.signInWithPayPal()" [disabled]="!store.paypalLoginAvailable()">
-          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
-            <path fill="#003087" d="M7.1 21.3H3.6a.5.5 0 0 1-.5-.6L5.9 3a.8.8 0 0 1 .8-.7h6.7c2.3 0 4 .5 4.9 1.6.9 1 1.1 2.4.7 4.2-.6 3.2-2.8 4.9-6.3 4.9H9.6a.8.8 0 0 0-.8.7l-1 6.9a.8.8 0 0 1-.7.7Z" />
-            <path fill="#0070e0" d="M19.4 8c-.7 3.6-3.2 5.4-7.1 5.4h-1.3a.8.8 0 0 0-.8.7l-.9 5.7-.3 1.6a.5.5 0 0 0 .5.6h2.9a.7.7 0 0 0 .7-.6l.6-3.8a.7.7 0 0 1 .7-.6h.5c3 0 5.2-1.2 5.9-4.7.3-1.5.2-2.6-.6-3.4l-.8-.9Z" />
-          </svg>
-          Continue with PayPal
-        </button>
-        @if (!store.paypalLoginAvailable()) {
-          <div class="hint">PayPal sign-in isn't configured on this server.</div>
+        @if (store.paypalLoginAvailable()) {
+          <button class="paypal" (click)="store.signInWithPayPal()">
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+              <path fill="#003087" d="M7.1 21.3H3.6a.5.5 0 0 1-.5-.6L5.9 3a.8.8 0 0 1 .8-.7h6.7c2.3 0 4 .5 4.9 1.6.9 1 1.1 2.4.7 4.2-.6 3.2-2.8 4.9-6.3 4.9H9.6a.8.8 0 0 0-.8.7l-1 6.9a.8.8 0 0 1-.7.7Z" />
+              <path fill="#0070e0" d="M19.4 8c-.7 3.6-3.2 5.4-7.1 5.4h-1.3a.8.8 0 0 0-.8.7l-.9 5.7-.3 1.6a.5.5 0 0 0 .5.6h2.9a.7.7 0 0 0 .7-.6l.6-3.8a.7.7 0 0 1 .7-.6h.5c3 0 5.2-1.2 5.9-4.7.3-1.5.2-2.6-.6-3.4l-.8-.9Z" />
+            </svg>
+            Continue with PayPal
+          </button>
+          <button class="btn ghost guest" (click)="store.continueAsGuest()">Try as guest</button>
+          <p class="fine">Guests use the demo PIN from the README. Sandbox only - no real money moves.</p>
+        } @else {
+          <button class="btn primary guest" (click)="store.continueAsGuest()">Get started</button>
+          <p class="fine">Sandbox demo: approve purchases with PIN <b>2468</b> and pay with a PayPal sandbox buyer account - no real money moves.</p>
         }
-        <button class="btn ghost guest" (click)="store.continueAsGuest()">Try as guest</button>
-        <p class="fine">Guests use the demo PIN from the README. Sandbox only - no real money moves.</p>
       </div>
     </section>
   `,

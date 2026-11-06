@@ -14,7 +14,7 @@ const STATE_COOKIE = "bw_oauth_state";
 
 // Step 1: send the browser to PayPal's consent screen.
 auth.get("/paypal/start", (_req, res) => {
-  if (!integrations.paypal()) return res.status(503).send("PayPal is not configured");
+  if (!paypalLoginEnabled()) return res.redirect("/?login=unavailable");
   const { url, state } = authorizeUrl(_req);
   setCookie(res, STATE_COOKIE, state, 600);
   log("paypal_login_started", { redirectUri: redirectUri(_req) });
@@ -48,9 +48,15 @@ auth.get("/paypal/callback", async (req, res) => {
   }
 });
 
+/**
+ * "Log in with PayPal" must be enabled per app in the PayPal dashboard (and isn't offered in every
+ * region), so the UI only shows it when PAYPAL_LOGIN=on. Otherwise visitors start as guests.
+ */
+export const paypalLoginEnabled = () => integrations.paypal() && /^(on|true|1|yes)$/i.test(process.env.PAYPAL_LOGIN ?? "");
+
 auth.get("/me", (req, res) => {
   const user = currentUser(req);
-  res.json({ user: user ? userView(user) : null, paypalLoginAvailable: integrations.paypal() });
+  res.json({ user: user ? userView(user) : null, paypalLoginAvailable: paypalLoginEnabled() });
 });
 
 auth.post("/logout", (req, res) => {

@@ -19,6 +19,9 @@ services:
         value: "true"
       - key: AI_PROVIDER
         value: gemini
+      # "on" shows Continue with PayPal; needs Log in with PayPal enabled for the app in PayPal's dashboard.
+      - key: PAYPAL_LOGIN
+        value: "off"
       - key: GEMINI_MODEL
         value: gemini-3.5-flash-lite
       # Hard cap on AI conversations per day for the public demo (protects the API bill).

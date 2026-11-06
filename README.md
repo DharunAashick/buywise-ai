@@ -130,7 +130,7 @@ npm run dev:frontend                     # http://localhost:4200 (proxies /api)
 | `PUBLIC_URL` | Log in with PayPal return URL base (default `http://localhost:4200`) | your app's public URL |
 | `DAILY_AI_TURN_LIMIT` | max AI conversations per day (default 400) | your choice |
 
-**Log in with PayPal setup:** developer.paypal.com → Apps & Credentials → **Sandbox** → your app → **Features** → enable **Log in with PayPal** → *Advanced settings*: tick **Full name**, **Email** and **Address**, and set the **Return URL** to `<PUBLIC_URL>/api/auth/paypal/callback` (locally `http://localhost:4200/api/auth/paypal/callback`). Judges can also skip sign-in with **Try as guest**.
+**Log in with PayPal is optional** and off by default (`PAYPAL_LOGIN=off`): visitors press **Get started** and use the demo PIN. To turn it on, set `PAYPAL_LOGIN=on` after this setup - developer.paypal.com → Apps & Credentials → **Sandbox** → your app → **Features** → enable **Log in with PayPal** → *Advanced settings*: tick **Full name**, **Email** and **Address**, and set the **Return URL** to `<PUBLIC_URL>/api/auth/paypal/callback` (locally `http://localhost:4200/api/auth/paypal/callback`). Judges can also skip sign-in with **Try as guest**.
 
 **Testing a purchase:** use a **sandbox personal (buyer) account** from developer.paypal.com → Sandbox accounts to approve the payment in the PayPal pop-up. To test a decline, use PayPal's sandbox negative-testing options.
 
