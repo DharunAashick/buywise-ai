@@ -161,7 +161,7 @@ export class ComparisonGrid {
       minWidth: 210,
       tooltipField: 'name',
       cellRenderer: (p: { data: Row }) =>
-        `<div class="bw-name"><span>${escape(p.data.name)} ${p.data.asked ? '<span class="bw-asked">You asked</span>' : ''}</span><small>${escape(p.data.approach)} · ${p.data.items} items</small></div>`,
+        `<div class="bw-name"><span>${escape(p.data.name)} ${p.data.asked ? '<span class="bw-asked">You asked</span>' : ''}</span><small>${escape(p.data.approach)} · ${p.data.items} ${p.data.items === 1 ? 'item' : 'items'}</small></div>`,
     },
     {
       headerName: 'Pay today',
