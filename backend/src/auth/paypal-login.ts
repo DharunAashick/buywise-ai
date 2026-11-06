@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import type { Request } from "express";
 import { config } from "../config.js";
 import { log } from "../lib/logger.js";
 
@@ -9,12 +10,23 @@ const WEB = config.paypal.sandbox ? "https://www.sandbox.paypal.com" : "https://
 const API = config.paypal.sandbox ? "https://api-m.sandbox.paypal.com" : "https://api-m.paypal.com";
 const SCOPES = "openid profile email address";
 
-export const redirectUri = () => `${config.publicUrl}/api/auth/paypal/callback`;
+/**
+ * Public origin of the app. PUBLIC_URL wins; in production without it, use the request's own
+ * host (Render terminates TLS and "trust proxy" makes req.protocol https); in development the
+ * Angular proxy rewrites Host, so fall back to the configured dev URL.
+ */
+export function publicOrigin(req: Request): string {
+  if (process.env.PUBLIC_URL) return config.publicUrl;
+  if (process.env.NODE_ENV === "production" && req.get("host")) return `${req.protocol}://${req.get("host")}`;
+  return config.publicUrl;
+}
+
+export const redirectUri = (req: Request) => `${publicOrigin(req)}/api/auth/paypal/callback`;
 
 /** One-time `state` values guarding the callback against CSRF (10 minute lifetime). */
 const pendingStates = new Map<string, number>();
 
-export function authorizeUrl(): { url: string; state: string } {
+export function authorizeUrl(req: Request): { url: string; state: string } {
   const state = randomBytes(24).toString("base64url");
   pendingStates.set(state, Date.now() + 10 * 60 * 1000);
   const params = new URLSearchParams({
@@ -22,7 +34,7 @@ export function authorizeUrl(): { url: string; state: string } {
     client_id: config.paypal.clientId,
     response_type: "code",
     scope: SCOPES,
-    redirect_uri: redirectUri(),
+    redirect_uri: redirectUri(req),
     state,
   });
   return { url: `${WEB}/signin/authorize?${params}`, state };

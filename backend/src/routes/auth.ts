@@ -1,8 +1,8 @@
 import { Router } from "express";
 import { z } from "zod/v4";
-import { config, integrations } from "../config.js";
+import { integrations } from "../config.js";
 import { log } from "../lib/logger.js";
-import { authorizeUrl, consumeState, identityFromCode, redirectUri } from "../auth/paypal-login.js";
+import { authorizeUrl, consumeState, identityFromCode, publicOrigin, redirectUri } from "../auth/paypal-login.js";
 import { userStore, userView } from "../auth/users.js";
 import { clearCookie, currentUser, readCookie, SESSION_COOKIE, setCookie } from "../auth/cookies.js";
 import { rateLimit } from "../security/rate-limit.js";
@@ -15,15 +15,15 @@ const STATE_COOKIE = "bw_oauth_state";
 // Step 1: send the browser to PayPal's consent screen.
 auth.get("/paypal/start", (_req, res) => {
   if (!integrations.paypal()) return res.status(503).send("PayPal is not configured");
-  const { url, state } = authorizeUrl();
+  const { url, state } = authorizeUrl(_req);
   setCookie(res, STATE_COOKIE, state, 600);
-  log("paypal_login_started", { redirectUri: redirectUri() });
+  log("paypal_login_started", { redirectUri: redirectUri(_req) });
   res.redirect(url);
 });
 
 // Step 2: PayPal redirects back with ?code&state.
 auth.get("/paypal/callback", async (req, res) => {
-  const back = (status: string) => res.redirect(`${config.publicUrl}/?login=${status}`);
+  const back = (status: string) => res.redirect(`${publicOrigin(req)}/?login=${status}`);
   const state = typeof req.query.state === "string" ? req.query.state : undefined;
   const code = typeof req.query.code === "string" ? req.query.code : undefined;
   clearCookie(res, STATE_COOKIE);
