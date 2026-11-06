@@ -54,7 +54,7 @@
         <div class="kpi card accent">
           <div class="eyebrow">True first-year cost</div>
           <div class="v num">{{ r.cost.firstYearTotal | money: false : store.fx() }}</div>
-          <div class="s">Hardware + games + 12 months of subscriptions</div>
+          <div class="s">Product + extras + 12 months of subscriptions</div>
         </div>
         <div class="kpi card">
           <div class="eyebrow">Budget impact</div>
@@ -75,6 +75,26 @@
           </div>
         }
       </section>
+    }
+
+    <section class="block">
+      <div class="block-head">
+        <h3>Your options</h3>
+        <span class="hint">Tap a card to see its details below</span>
+      </div>
+      <app-option-cards
+        [solutions]="store.options()"
+        [selectedId]="store.selected()?.id"
+        [recommendedId]="rec()?.id"
+        [fx]="store.fx()"
+        (select)="pickOption($event)"
+      />
+    </section>
+
+    @if (store.selected(); as sel) {
+      <div #detail class="detail-anchor">
+        <app-option-detail [option]="sel" [isRecommended]="sel.id === rec()?.id" />
+      </div>
     }
 
     @if (askedVsPick(); as cmp) {
@@ -117,10 +137,6 @@
       </div>
       <app-cost-chart [solutions]="store.options()" [fx]="store.fx()" [recommendedId]="rec()?.id" />
     </section>
-
-    @if (store.selected(); as sel) {
-      <app-option-detail [option]="sel" [isRecommended]="sel.id === rec()?.id" />
-    }
 
     <section class="block">
       <div class="block-head">

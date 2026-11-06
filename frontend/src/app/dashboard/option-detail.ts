@@ -23,9 +23,9 @@ export class OptionDetail {
   protected segments = computed(() => {
     const c = this.option().cost;
     const parts = [
-      { key: 'Hardware', value: c.hardware, color: '#5b8cff' },
+      { key: 'Product', value: c.hardware, color: '#5b8cff' },
       { key: 'Accessories', value: c.accessories, color: '#8b5cf6' },
-      { key: 'Games & software', value: c.software, color: '#ec4899' },
+      { key: 'Software & games', value: c.software, color: '#ec4899' },
       { key: '12 mo subscriptions', value: c.annualRecurring, color: '#34d399' },
     ].filter((p) => p.value > 0);
     const total = parts.reduce((a, p) => a + p.value, 0) || 1;

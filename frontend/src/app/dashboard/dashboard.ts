@@ -1,14 +1,15 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, viewChild } from '@angular/core';
 import { BuyWiseStore } from '../core/buywise.store';
 import { IMPACT_LABEL, money, MoneyPipe } from '../core/format';
 import { ComparisonGrid } from './comparison-grid';
 import { OptionDetail } from './option-detail';
 import { CostChart } from './cost-chart';
 import { ItemsGrid } from './items-grid';
+import { OptionCards } from './option-cards';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [ComparisonGrid, OptionDetail, CostChart, ItemsGrid, MoneyPipe],
+  imports: [ComparisonGrid, OptionDetail, CostChart, ItemsGrid, OptionCards, MoneyPipe],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -61,4 +62,12 @@ export class Dashboard {
   });
 
   protected approaches = computed(() => [...new Set(this.store.options().map((o) => o.approach))]);
+
+  private detail = viewChild<ElementRef<HTMLElement>>('detail');
+
+  /** Select a card, then bring its details into view. */
+  protected pickOption(id: string) {
+    this.store.selectedOptionId.set(id);
+    setTimeout(() => this.detail()?.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+  }
 }
