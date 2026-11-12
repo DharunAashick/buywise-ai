@@ -52,8 +52,9 @@ export function assessAffordability(cost: CostBreakdown, profile: UserProfile): 
   };
 }
 
-/** The user's own currency, if they stated their salary in one (amounts are still computed in USD). */
+/** The user's own currency - from their salary, else their country (amounts are still computed in USD). */
 export function localFx(profile: UserProfile): LocalFx | undefined {
-  const s = profile.statedIncome;
-  return s && s.currency !== "USD" ? { currency: s.currency, usdRate: s.usdRate } : undefined;
+  const s = profile.statedIncome?.currency !== "USD" ? profile.statedIncome : undefined;
+  const c = s ?? profile.localCurrency;
+  return c && c.currency !== "USD" ? { currency: c.currency, usdRate: c.usdRate } : undefined;
 }

@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod/v4";
 import type Anthropic from "@anthropic-ai/sdk";
 import { formatLocal, formatMoney, toCents, type LocalFx } from "../lib/money.js";
-import { toUsd } from "../lib/fx.js";
+import { currencyForCountry, toUsd, usdRate } from "../lib/fx.js";
 import { getProduct, searchProducts } from "../catalog/index.js";
 import { calculateCost, checkBundle } from "../engine/cost.js";
 import { assessAffordability, localFx } from "../engine/affordability.js";
@@ -271,6 +271,11 @@ const TOOLS: Record<string, ToolDef> = {
       if (input.country) {
         p.country = input.country;
         p.catalogCountry = catalogMarket(input.country);
+        const home = currencyForCountry(input.country);
+        if (home && home !== "USD") {
+          const { rate, source } = await usdRate(home).catch(() => ({ rate: 0, source: "fallback" as const }));
+          p.localCurrency = rate ? { currency: home, usdRate: rate, rateSource: source } : undefined;
+        } else p.localCurrency = undefined;
       }
       if (input.income_declined) p.intakeAsked = true;
 
@@ -295,13 +300,14 @@ const TOOLS: Record<string, ToolDef> = {
         country: p.country,
         product_market: p.catalogCountry,
         note: unsupportedMarket
-          ? `Product search isn't available for ${p.country}; using US retailer prices in USD. Tell the user this once.`
+          ? `Product search isn't available for ${p.country}, so prices come from US retailers.${localFx(p) ? ` The app shows every amount converted to ${localFx(p)!.currency}; quote in_user_currency figures and mention once that PayPal charges the exact USD amount.` : " Tell the user this once."}`
           : undefined,
         monthly_income_usd: p.monthlyIncome !== undefined ? formatMoney(p.monthlyIncome) : undefined,
         stated_income: p.statedIncome ? `${p.statedIncome.amount} ${p.statedIncome.currency}` : undefined,
         fx_rate: conversion && currency !== "USD" ? `1 ${currency} = ${conversion.rate} USD (${conversion.source})` : undefined,
         monthly_budget_usd: p.monthlyBudget !== undefined ? formatMoney(p.monthlyBudget) : undefined,
         max_upfront_usd: p.maxUpfront !== undefined ? formatMoney(p.maxUpfront) : undefined,
+        display_currency: localFx(p)?.currency ?? "USD",
         goal: p.goal,
       };
     },

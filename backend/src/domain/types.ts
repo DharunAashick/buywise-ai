@@ -120,6 +120,8 @@ export interface UserProfile {
   catalogCountry?: string;
   /** Income exactly as the user stated it, before conversion to USD. */
   statedIncome?: { amount: number; currency: string; usdRate: number; rateSource: string };
+  /** Home currency of `country` (e.g. INR for India): amounts display in it even before a salary is given. */
+  localCurrency?: { currency: string; usdRate: number; rateSource: string };
   /** True once the user has been asked about country/income (so we don't ask twice). */
   intakeAsked?: boolean;
   monthlyIncome?: Cents;

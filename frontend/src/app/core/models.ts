@@ -76,6 +76,7 @@ export interface UserProfile {
   country?: string;
   catalogCountry?: string;
   statedIncome?: { amount: number; currency: string; usdRate: number; rateSource: string };
+  localCurrency?: { currency: string; usdRate: number; rateSource: string };
   monthlyIncome?: number;
   monthlyBudget?: number;
   maxUpfront?: number;

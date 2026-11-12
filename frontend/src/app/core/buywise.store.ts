@@ -76,10 +76,12 @@ export class BuyWiseStore {
   /** Fires with the final assistant text of each turn (used for voice read-out). */
   readonly lastReply = signal<{ text: string; at: number } | null>(null);
 
-  /** User's own currency when they gave their salary in one (amounts display in it; PayPal charges USD). */
+  /** User's own currency - from their salary, else their country (amounts display in it; PayPal charges USD). */
   readonly fx = computed<Fx | null>(() => {
-    const s = this.session()?.profile.statedIncome;
-    return s && s.currency !== 'USD' ? { currency: s.currency, usdRate: s.usdRate } : null;
+    const p = this.session()?.profile;
+    const s = p?.statedIncome?.currency !== 'USD' ? p?.statedIncome : undefined;
+    const c = s ?? p?.localCurrency;
+    return c && c.currency !== 'USD' ? { currency: c.currency, usdRate: c.usdRate } : null;
   });
 
   /** Human-readable name of the model answering, e.g. "Gemini 3.5 Flash-Lite". */
